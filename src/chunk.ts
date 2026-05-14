@@ -80,6 +80,112 @@ export function chunkText(text: string, opts: Partial<ChunkOptions> = {}): Chunk
   }));
 }
 
+export interface SectionChunk extends Chunk {
+  /** Heading that introduces this section, or null for the document preamble. */
+  heading: string | null;
+  /** Heading level (1–6) derived from the number of `#` characters, or null. */
+  headingLevel: number | null;
+}
+
+/**
+ * Semantic chunker that splits Markdown/plain-text documents by headings
+ * (`#`, `##`, …) and paragraph breaks, keeping each heading with its content.
+ *
+ * Compared to `chunkText()`:
+ * - Never breaks a heading away from its first paragraph
+ * - Each chunk carries the heading context, so retrieval results are
+ *   self-contained even without surrounding text
+ * - Falls back to `chunkText()` for sections that exceed `maxChars`
+ *
+ * Use this for structured knowledge-base documents (FAQs, wikis, product
+ * pages). Use `chunkText()` for unstructured long-form prose.
+ *
+ * @example
+ * ```ts
+ * import { chunkBySections } from "@chatman-media/chatbot_rag";
+ *
+ * const chunks = chunkBySections(markdownString, { maxChars: 1200 });
+ * // chunks[0].heading → "Installation"
+ * // chunks[0].text    → "## Installation\n\nRun `bun add …`"
+ * ```
+ */
+export function chunkBySections(text: string, opts: Partial<ChunkOptions> = {}): SectionChunk[] {
+  const { maxChars, overlapChars } = { ...DEFAULT_OPTIONS, ...opts };
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+
+  // Split on Markdown headings — keep the heading line with its section body.
+  const lines = trimmed.split("\n");
+
+  interface RawSection {
+    heading: string | null;
+    headingLevel: number | null;
+    body: string;
+  }
+
+  const sections: RawSection[] = [];
+  let currentHeading: string | null = null;
+  let currentLevel: number | null = null;
+  let bodyLines: string[] = [];
+
+  const flush = () => {
+    const body = bodyLines.join("\n").trim();
+    if (body || currentHeading) {
+      sections.push({ heading: currentHeading, headingLevel: currentLevel, body });
+    }
+    bodyLines = [];
+  };
+
+  for (const line of lines) {
+    const m = line.match(/^(#{1,6})\s+(.+)$/);
+    if (m) {
+      flush();
+      currentHeading = m[2] ?? null;
+      currentLevel = (m[1] ?? "").length;
+      bodyLines = [];
+    } else {
+      bodyLines.push(line);
+    }
+  }
+  flush();
+
+  const result: SectionChunk[] = [];
+  let globalIndex = 0;
+
+  for (const section of sections) {
+    // Build full section text: prepend heading if present
+    const headingPrefix =
+      section.heading && section.headingLevel
+        ? `${"#".repeat(section.headingLevel)} ${section.heading}\n\n`
+        : "";
+    const full = `${headingPrefix}${section.body}`.trim();
+    if (!full) continue;
+
+    if (full.length <= maxChars) {
+      result.push({
+        index: globalIndex++,
+        text: full,
+        tokenCount: estimateTokens(full),
+        heading: section.heading,
+        headingLevel: section.headingLevel,
+      });
+    } else {
+      // Section is too large — fall back to chunkText, preserve heading context
+      const subChunks = chunkText(full, { maxChars, overlapChars });
+      for (const sub of subChunks) {
+        result.push({
+          ...sub,
+          index: globalIndex++,
+          heading: section.heading,
+          headingLevel: section.headingLevel,
+        });
+      }
+    }
+  }
+
+  return result;
+}
+
 function splitLong(text: string, maxChars: number, overlapChars: number): string[] {
   const out: string[] = [];
   const step = Math.max(1, maxChars - overlapChars);
