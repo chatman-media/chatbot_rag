@@ -133,6 +133,8 @@ export {
   stripAILeadIns,
   stripMarkdownBold,
 } from "./text-style-rules.ts";
+// ── Tool calling ──────────────────────────────────────────────────────────────
+export type { AnyRagTool, CompleteWithToolsResult, RagTool } from "./tools.ts";
 // ── Topic routing ─────────────────────────────────────────────────────────────
 export { classifyTopic, classifyTopicAll, KNOWN_TOPICS } from "./topic-classifier.ts";
 // ── Storage interfaces & implementations ─────────────────────────────────────

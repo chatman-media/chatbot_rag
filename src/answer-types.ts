@@ -1,6 +1,7 @@
 import type { ChatClient, ChatMessage } from "./chat.ts";
 import type { EmbeddingClient } from "./embed.ts";
 import type { FunnelStage, SkillForPrompt, Style } from "./styles.ts";
+import type { AnyRagTool } from "./tools.ts";
 import type { IKbStore, KbSearchHit } from "./types.ts";
 
 export const NO_CONTEXT_MARKER = "__NO_CONTEXT__";
@@ -46,6 +47,14 @@ export interface AnswerInput {
    * without having to unwrap the return value.
    */
   onTelemetry?: (telemetry: AnswerTelemetry) => void;
+  /**
+   * Optional tools the LLM can call during answer generation (single-cycle).
+   * When the model decides to call a tool, `execute()` is called automatically
+   * and the result is fed back for a final answer.
+   * Requires `chat` to implement `completeWithTools` (e.g. `OpenAIChatClient`),
+   * otherwise falls back to prompt-based tool injection.
+   */
+  tools?: AnyRagTool[];
 }
 
 export interface AnswerTelemetry {
@@ -59,6 +68,8 @@ export interface AnswerTelemetry {
   original_query?: string;
   rewritten_query?: string;
   factCheck?: { grounded: boolean; vacancyOk: boolean; reason?: string };
+  /** Populated when a tool was called during answer generation. */
+  toolCall?: { name: string; result: unknown };
 }
 
 export interface AnswerResult {

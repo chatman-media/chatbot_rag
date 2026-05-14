@@ -1,10 +1,19 @@
 export type FetchLike = typeof fetch;
 
-export type ChatRole = "system" | "user" | "assistant";
+export type ChatRole = "system" | "user" | "assistant" | "tool";
 
 export interface ChatMessage {
   role: ChatRole;
-  content: string;
+  /** null only for assistant messages that carry tool_calls instead of text. */
+  content: string | null;
+  /** Populated by the model when it decides to call a tool. */
+  tool_calls?: Array<{
+    id: string;
+    type: "function";
+    function: { name: string; arguments: string };
+  }>;
+  /** Required when role === "tool" — references the tool_call id. */
+  tool_call_id?: string;
 }
 
 export interface ChatCompletionOpts {
@@ -22,6 +31,22 @@ export interface ChatClient {
    * using, or fall back to `complete()`.
    */
   stream?(messages: ChatMessage[], opts?: ChatCompletionOpts): AsyncIterable<string>;
+  /**
+   * Tool-calling variant. Returns either a text response or a list of tool
+   * calls the model wants to make. Optional — falls back to prompt-based
+   * tool injection when not implemented.
+   */
+  completeWithTools?(
+    messages: ChatMessage[],
+    tools: Array<{
+      type: "function";
+      function: { name: string; description: string; parameters: Record<string, unknown> };
+    }>,
+    opts?: ChatCompletionOpts,
+  ): Promise<{
+    content: string | null;
+    toolCalls: Array<{ id: string; name: string; args: Record<string, unknown> }>;
+  }>;
 }
 
 /** Parse OpenAI-compatible SSE stream, yielding text delta chunks. */
@@ -79,7 +104,16 @@ export interface OpenAIChatOptions {
 interface ChatResponse {
   choices?: Array<{
     index?: number;
-    message?: { role: string; content: string };
+    finish_reason?: string;
+    message?: {
+      role: string;
+      content: string | null;
+      tool_calls?: Array<{
+        id: string;
+        type: string;
+        function: { name: string; arguments: string };
+      }>;
+    };
   }>;
   error?: { message?: string };
 }
@@ -132,6 +166,56 @@ export class OpenAIChatClient implements ChatClient {
       throw new ChatApiError(res.status, "no choices returned by model");
     }
     return first;
+  }
+
+  async completeWithTools(
+    messages: ChatMessage[],
+    tools: Array<{
+      type: "function";
+      function: { name: string; description: string; parameters: Record<string, unknown> };
+    }>,
+    opts: ChatCompletionOpts = {},
+  ): Promise<{
+    content: string | null;
+    toolCalls: Array<{ id: string; name: string; args: Record<string, unknown> }>;
+  }> {
+    const body: Record<string, unknown> = {
+      model: this.model,
+      messages,
+      tools,
+      tool_choice: "auto",
+    };
+    if (opts.temperature !== undefined) body.temperature = opts.temperature;
+    if (opts.numPredict !== undefined) body.max_tokens = opts.numPredict;
+
+    const res = await this.fetchImpl(`${this.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${this.apiKey}` },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(this.timeoutMs),
+    });
+
+    let payload: ChatResponse;
+    try {
+      payload = (await res.json()) as ChatResponse;
+    } catch {
+      throw new ChatApiError(res.status, "non-JSON response");
+    }
+    if (!res.ok) throw new ChatApiError(res.status, payload.error?.message ?? "unexpected error");
+
+    const msg = payload.choices?.[0]?.message;
+    if (!msg) throw new ChatApiError(res.status, "no choices returned by model");
+
+    if (msg.tool_calls && msg.tool_calls.length > 0) {
+      const toolCalls = msg.tool_calls.map((tc) => ({
+        id: tc.id,
+        name: tc.function.name,
+        args: JSON.parse(tc.function.arguments) as Record<string, unknown>,
+      }));
+      return { content: null, toolCalls };
+    }
+
+    return { content: msg.content ?? "", toolCalls: [] };
   }
 
   async *stream(messages: ChatMessage[], opts: ChatCompletionOpts = {}): AsyncIterable<string> {

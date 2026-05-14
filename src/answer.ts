@@ -25,6 +25,8 @@ import {
   legacyRagSamplingTemperature,
 } from "./system-prompt.ts";
 import { applyStyleRules } from "./text-style-rules.ts";
+import type { AnyRagTool } from "./tools.ts";
+import { toolToOpenAIFunction } from "./tools.ts";
 import { classifyTopic } from "./topic-classifier.ts";
 import type { KbSearchHit } from "./types.ts";
 
@@ -115,14 +117,65 @@ async function answerFromHits(opts: {
   console.log(`[rag] calling LLM (hits=${hits.length} vacBlock=${vacBlock.length > 0})`);
   const generationStart = Date.now();
   const numPredict = input.numPredict ?? input.style?.model.maxTokens;
-  const raw = await input.chat.complete(messages, {
-    temperature,
-    ...(numPredict !== undefined ? { numPredict } : {}),
-  });
+  const llmOpts = { temperature, ...(numPredict !== undefined ? { numPredict } : {}) };
+
+  let toolCallTelemetry: AnswerTelemetry["toolCall"] | undefined;
+
+  if (input.tools && input.tools.length > 0 && typeof input.chat.completeWithTools === "function") {
+    const toolDefs = input.tools.map(toolToOpenAIFunction);
+    const toolResult = await input.chat.completeWithTools(messages, toolDefs, llmOpts);
+
+    if (toolResult.toolCalls.length > 0) {
+      const tc = toolResult.toolCalls[0];
+      if (!tc)
+        return {
+          text: NO_CONTEXT_MARKER,
+          usedChunkIds: [],
+          hits: [],
+          telemetry: { ...baseTelemetry, path: "no_context", total_ms: Date.now() - startedAt },
+        };
+      const tool = (input.tools as AnyRagTool[]).find((t) => t.name === tc.name);
+      if (tool) {
+        const result = await tool.execute(tc.args);
+        toolCallTelemetry = { name: tc.name, result };
+
+        messages.push({
+          role: "assistant",
+          content: null,
+          tool_calls: [
+            {
+              id: tc.id,
+              type: "function",
+              function: { name: tc.name, arguments: JSON.stringify(tc.args) },
+            },
+          ],
+        });
+        messages.push({ role: "tool", content: JSON.stringify(result), tool_call_id: tc.id });
+      }
+    } else if (toolResult.content !== null) {
+      const text = sanitizeLlmOutput(toolResult.content);
+      const generationMs = Date.now() - generationStart;
+      const telemetry: AnswerTelemetry = { ...baseTelemetry, generation_ms: generationMs };
+      const result: AnswerResult = {
+        text,
+        usedChunkIds: hits.map((h) => h.chunk_id),
+        hits,
+        telemetry: { ...telemetry, path: "ok", total_ms: Date.now() - startedAt },
+      };
+      input.onTelemetry?.(result.telemetry);
+      return result;
+    }
+  }
+
+  const raw = await input.chat.complete(messages, llmOpts);
   const text = sanitizeLlmOutput(raw);
   const generationMs = Date.now() - generationStart;
 
-  const telemetry: AnswerTelemetry = { ...baseTelemetry, generation_ms: generationMs };
+  const telemetry: AnswerTelemetry = {
+    ...baseTelemetry,
+    generation_ms: generationMs,
+    ...(toolCallTelemetry ? { toolCall: toolCallTelemetry } : {}),
+  };
 
   const runVacancyCheck = vacBlock.length > 0 && input.vacancyGuard !== false;
   const runFactCheck =
