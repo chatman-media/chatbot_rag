@@ -4,6 +4,7 @@
 
 **Production-grade RAG engine for conversational bots**
 
+[![CI](https://github.com/chatman-media/chatbot_rag/actions/workflows/ci.yml/badge.svg)](https://github.com/chatman-media/chatbot_rag/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Bun](https://img.shields.io/badge/Bun-compatible-fbf0df?logo=bun&logoColor=black)](https://bun.sh/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
