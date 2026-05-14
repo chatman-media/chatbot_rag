@@ -1,6 +1,6 @@
 {
   "name": "@chatman-media/rag",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "description": "Production-grade RAG engine for conversational bots — hybrid retrieval (pgvector + BM25), pluggable LLM providers, sales-style prompt composition, hallucination guard, query rewriting.",
   "type": "module",
   "main": "./dist/index.js",
