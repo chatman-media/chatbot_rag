@@ -40,6 +40,12 @@ export interface AnswerInput {
   vacancyGuard?: boolean;
   skills?: readonly SkillForPrompt[];
   booksPriority?: boolean;
+  /**
+   * Called after every `answerWithRag` or `answerWithRagStream` call with the
+   * final telemetry. Useful for logging, metrics, or A/B experiment recording
+   * without having to unwrap the return value.
+   */
+  onTelemetry?: (telemetry: AnswerTelemetry) => void;
 }
 
 export interface AnswerTelemetry {

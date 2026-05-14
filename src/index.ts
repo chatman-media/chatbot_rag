@@ -17,11 +17,11 @@
  */
 
 // ── Core answer pipeline ─────────────────────────────────────────────────────
-export { answerWithRag } from "./answer.ts";
+export { answerWithRag, answerWithRagStream } from "./answer.ts";
 export type { AnswerInput, AnswerResult, AnswerTelemetry, Persona } from "./answer-types.ts";
 export { NO_CONTEXT_MARKER } from "./answer-types.ts";
 // ── LLM clients ──────────────────────────────────────────────────────────────
-export type { ChatClient, ChatMessage, ChatRole } from "./chat.ts";
+export type { ChatClient, ChatCompletionOpts, ChatMessage, ChatRole } from "./chat.ts";
 export { ChatApiError, OpenAIChatClient } from "./chat.ts";
 export type { Chunk, ChunkOptions } from "./chunk.ts";
 // ── Chunking ──────────────────────────────────────────────────────────────────
@@ -73,6 +73,7 @@ export type { RewriteQueryInput } from "./rewrite-query.ts";
 export { questionNeedsRewrite, rewriteQuery, sanitizeRewritten } from "./rewrite-query.ts";
 // ── Output sanitization ───────────────────────────────────────────────────────
 export { sanitizeLlmOutput } from "./sanitize.ts";
+export { InMemoryKbStore } from "./stores/memory-store.ts";
 export type {
   ComposeOptions,
   FunnelStage,
@@ -113,7 +114,7 @@ export {
 } from "./text-style-rules.ts";
 // ── Topic routing ─────────────────────────────────────────────────────────────
 export { classifyTopic, classifyTopicAll, KNOWN_TOPICS } from "./topic-classifier.ts";
-// ── Storage interfaces ────────────────────────────────────────────────────────
+// ── Storage interfaces & implementations ─────────────────────────────────────
 export type { IKbStore, IKbSuggestionsStore, KbSearchHit } from "./types.ts";
 
 // ── Utilities ─────────────────────────────────────────────────────────────────

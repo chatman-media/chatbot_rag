@@ -1,4 +1,10 @@
-import { ChatApiError, type ChatClient, type ChatMessage, type FetchLike } from "../chat.ts";
+import {
+  ChatApiError,
+  type ChatClient,
+  type ChatCompletionOpts,
+  type ChatMessage,
+  type FetchLike,
+} from "../chat.ts";
 
 /**
  * OpenRouter chat client. OpenRouter exposes an OpenAI-compatible
@@ -69,7 +75,7 @@ export class OpenRouterChatClient implements ChatClient {
     this.fetchImpl = opts.fetch ?? globalThis.fetch.bind(globalThis);
   }
 
-  async complete(messages: ChatMessage[], opts: { temperature?: number } = {}): Promise<string> {
+  async complete(messages: ChatMessage[], opts: ChatCompletionOpts = {}): Promise<string> {
     const body: Record<string, unknown> = {
       model: this.model,
       messages,
@@ -124,5 +130,73 @@ export class OpenRouterChatClient implements ChatClient {
       throw new ChatApiError(res.status, "no choices[0].message.content in OpenRouter response");
     }
     return content.trim();
+  }
+
+  async *stream(messages: ChatMessage[], opts: ChatCompletionOpts = {}): AsyncIterable<string> {
+    const body: Record<string, unknown> = {
+      model: this.model,
+      messages,
+      stream: true,
+    };
+    if (opts.temperature !== undefined) body.temperature = opts.temperature;
+    if (opts.numPredict !== undefined) body.max_tokens = opts.numPredict;
+
+    const headers: Record<string, string> = {
+      "content-type": "application/json",
+      authorization: `Bearer ${this.apiKey}`,
+    };
+    if (this.siteUrl) headers["HTTP-Referer"] = this.siteUrl;
+    if (this.appName) headers["X-Title"] = this.appName;
+
+    let res: Response;
+    try {
+      res = await this.fetchImpl(`${this.baseUrl}/chat/completions`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(this.timeoutMs),
+      });
+    } catch (err) {
+      const cause = err instanceof Error ? err.message : String(err);
+      throw new ChatApiError(0, `OpenRouter unreachable at ${this.baseUrl}: ${cause}`);
+    }
+
+    if (!res.ok || !res.body) {
+      const errPayload = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+      throw new ChatApiError(
+        res.status,
+        errPayload.error?.message ?? `OpenRouter stream error (HTTP ${res.status})`,
+      );
+    }
+
+    const decoder = new TextDecoder();
+    const reader = res.body.getReader();
+    let buf = "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() ?? "";
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data:")) continue;
+          const data = trimmed.slice(5).trim();
+          if (data === "[DONE]") return;
+          try {
+            const chunk = JSON.parse(data) as {
+              choices?: Array<{ delta?: { content?: string } }>;
+            };
+            const token = chunk.choices?.[0]?.delta?.content;
+            if (token) yield token;
+          } catch {
+            // skip malformed SSE line
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
   }
 }
