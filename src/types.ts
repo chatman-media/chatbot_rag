@@ -2,7 +2,7 @@
  * Storage interfaces for the RAG engine.
  *
  * The package defines these interfaces; consumers provide implementations.
- * The reference implementation (`PgKbStore`) ships with the main tg-chatbot
+ * The reference implementation (`PgKbStore`) ships with the main sales-guru
  * project and wraps the PostgreSQL + pgvector repos.
  */
 

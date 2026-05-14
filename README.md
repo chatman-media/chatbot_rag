@@ -155,7 +155,7 @@ class MyKbStore implements IKbStore {
 }
 ```
 
-> **Reference implementation** (PostgreSQL + pgvector) ships in the main [tg-chatbot](https://github.com/chatman-media/tg-chatbot) repo as `src/rag/store-adapter.ts`.
+> **Reference implementation** (PostgreSQL + pgvector) ships in the main [sales-guru](https://github.com/chatman-media/sales-guru) repo as `src/rag/store-adapter.ts`.
 
 ## LLM providers
 

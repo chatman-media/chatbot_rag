@@ -19,7 +19,7 @@ bun run format
 ```
 
 No test runner is bundled in this package — integration tests live in the host
-[tg-chatbot](https://github.com/chatman-media/tg-chatbot) project which has a
+[sales-guru](https://github.com/chatman-media/sales-guru) project which has a
 real PostgreSQL + pgvector setup.
 
 ## Project structure
