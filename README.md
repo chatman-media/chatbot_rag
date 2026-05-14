@@ -2,7 +2,7 @@
 
 <a name="top"></a>
 
-# @chatman/rag
+# @chatman-media/chatbot-rag
 
 **Production-grade RAG engine for conversational bots**
 
@@ -30,7 +30,7 @@ Hybrid retrieval · Sales-style personas · Hallucination guard · Zero framewor
 
 ## 🇬🇧 English
 
-### Why @chatman/rag?
+### Why @chatman-media/chatbot-rag?
 
 Most RAG demos stop at "embed → search → prompt". This package ships what **production** looks like:
 
@@ -48,8 +48,8 @@ Most RAG demos stop at "embed → search → prompt". This package ships what **
 ### Install
 
 ```bash
-bun add @chatman/rag     # Bun
-npm install @chatman/rag # npm / pnpm / yarn
+bun add @chatman-media/chatbot-rag     # Bun
+npm install @chatman-media/chatbot-rag # npm / pnpm / yarn
 ```
 
 **Peer requirements:** Node 18+ or Bun 1.x. No native modules — pure TypeScript.
@@ -57,7 +57,7 @@ npm install @chatman/rag # npm / pnpm / yarn
 ### Quick start
 
 ```ts
-import { answerWithRag, OpenAIChatClient, OpenAIEmbeddingClient } from "@chatman/rag";
+import { answerWithRag, OpenAIChatClient, OpenAIEmbeddingClient } from "@chatman-media/chatbot-rag";
 
 const chat = new OpenAIChatClient({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -123,7 +123,7 @@ answerWithRag(question, kb, chat, embedder, options?)
 The engine is storage-agnostic. Implement `IKbStore` for your backend:
 
 ```ts
-import type { IKbStore, KbSearchHit } from "@chatman/rag";
+import type { IKbStore, KbSearchHit } from "@chatman-media/chatbot-rag";
 
 class MyKbStore implements IKbStore {
   async search(embedding: number[], k: number, topic?: string | null): Promise<KbSearchHit[]> {
@@ -173,7 +173,7 @@ import {
   OpenRouterChatClient,      // 100+ models behind one API key
   OpenAIEmbeddingClient,
   OllamaEmbeddingClient,
-} from "@chatman/rag";
+} from "@chatman-media/chatbot-rag";
 
 // Local Ollama (qwen3, llama3, mistral, …)
 const chat = new OllamaChatClient({
@@ -200,7 +200,7 @@ const chat = new OpenAIChatClient({
 ### Ingest documents
 
 ```ts
-import { ingestFile, ingestDirectory, ingestText } from "@chatman/rag";
+import { ingestFile, ingestDirectory, ingestText } from "@chatman-media/chatbot-rag";
 
 // Single file
 await ingestFile("./docs/faq.md", { kb, embedder });
@@ -225,8 +225,8 @@ Content is SHA-256 deduped — re-ingesting unchanged files is a no-op.
 For bots that need to convert, not just answer:
 
 ```ts
-import { answerWithRag } from "@chatman/rag";
-import type { Style } from "@chatman/rag";
+import { answerWithRag } from "@chatman-media/chatbot-rag";
+import type { Style } from "@chatman-media/chatbot-rag";
 
 const style: Style = {
   slug: "alina-nepq",
@@ -332,7 +332,7 @@ PRs and issues welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## 🇷🇺 Русский
 
-### Зачем @chatman/rag?
+### Зачем @chatman-media/chatbot-rag?
 
 Большинство RAG-демо останавливаются на схеме «embed → search → prompt». Этот пакет показывает, как выглядит **продакшн**:
 
@@ -350,8 +350,8 @@ PRs and issues welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 ### Установка
 
 ```bash
-bun add @chatman/rag     # Bun
-npm install @chatman/rag # npm / pnpm / yarn
+bun add @chatman-media/chatbot-rag     # Bun
+npm install @chatman-media/chatbot-rag # npm / pnpm / yarn
 ```
 
 **Требования:** Node 18+ или Bun 1.x. Нет нативных модулей — чистый TypeScript.
@@ -359,7 +359,7 @@ npm install @chatman/rag # npm / pnpm / yarn
 ### Быстрый старт
 
 ```ts
-import { answerWithRag, OpenAIChatClient, OpenAIEmbeddingClient } from "@chatman/rag";
+import { answerWithRag, OpenAIChatClient, OpenAIEmbeddingClient } from "@chatman-media/chatbot-rag";
 
 const chat = new OpenAIChatClient({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -425,7 +425,7 @@ answerWithRag(question, kb, chat, embedder, options?)
 Движок не зависит от хранилища. Реализуйте `IKbStore` для вашего бэкенда:
 
 ```ts
-import type { IKbStore, KbSearchHit } from "@chatman/rag";
+import type { IKbStore, KbSearchHit } from "@chatman-media/chatbot-rag";
 
 class MyKbStore implements IKbStore {
   async search(embedding: number[], k: number, topic?: string | null): Promise<KbSearchHit[]> {
@@ -476,7 +476,7 @@ import {
   OpenRouterChatClient,      // 100+ моделей по одному API-ключу
   OpenAIEmbeddingClient,
   OllamaEmbeddingClient,
-} from "@chatman/rag";
+} from "@chatman-media/chatbot-rag";
 
 // Локальный Ollama (qwen3, llama3, mistral, …)
 const chat = new OllamaChatClient({
@@ -503,7 +503,7 @@ const chat = new OpenAIChatClient({
 ### Загрузка документов
 
 ```ts
-import { ingestFile, ingestDirectory, ingestText } from "@chatman/rag";
+import { ingestFile, ingestDirectory, ingestText } from "@chatman-media/chatbot-rag";
 
 // Один файл
 await ingestFile("./docs/faq.md", { kb, embedder });
@@ -528,8 +528,8 @@ await ingestText(
 Для ботов, которые должны конвертировать, а не просто отвечать:
 
 ```ts
-import { answerWithRag } from "@chatman/rag";
-import type { Style } from "@chatman/rag";
+import { answerWithRag } from "@chatman-media/chatbot-rag";
+import type { Style } from "@chatman-media/chatbot-rag";
 
 const style: Style = {
   slug: "alina-nepq",
@@ -635,7 +635,7 @@ PR и issues приветствуются. Смотрите [CONTRIBUTING.md](CO
 
 ## 🇨🇳 中文
 
-### 为什么选择 @chatman/rag？
+### 为什么选择 @chatman-media/chatbot-rag？
 
 大多数 RAG 演示止步于「embed → search → prompt」。本包展示的是**生产环境**应有的样子：
 
@@ -653,8 +653,8 @@ PR и issues приветствуются. Смотрите [CONTRIBUTING.md](CO
 ### 安装
 
 ```bash
-bun add @chatman/rag     # Bun
-npm install @chatman/rag # npm / pnpm / yarn
+bun add @chatman-media/chatbot-rag     # Bun
+npm install @chatman-media/chatbot-rag # npm / pnpm / yarn
 ```
 
 **环境要求：** Node 18+ 或 Bun 1.x。无原生模块——纯 TypeScript。
@@ -662,7 +662,7 @@ npm install @chatman/rag # npm / pnpm / yarn
 ### 快速开始
 
 ```ts
-import { answerWithRag, OpenAIChatClient, OpenAIEmbeddingClient } from "@chatman/rag";
+import { answerWithRag, OpenAIChatClient, OpenAIEmbeddingClient } from "@chatman-media/chatbot-rag";
 
 const chat = new OpenAIChatClient({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -728,7 +728,7 @@ answerWithRag(question, kb, chat, embedder, options?)
 引擎与存储无关。为您的后端实现 `IKbStore`：
 
 ```ts
-import type { IKbStore, KbSearchHit } from "@chatman/rag";
+import type { IKbStore, KbSearchHit } from "@chatman-media/chatbot-rag";
 
 class MyKbStore implements IKbStore {
   async search(embedding: number[], k: number, topic?: string | null): Promise<KbSearchHit[]> {
@@ -779,7 +779,7 @@ import {
   OpenRouterChatClient,      // 单个 API 密钥访问 100+ 模型
   OpenAIEmbeddingClient,
   OllamaEmbeddingClient,
-} from "@chatman/rag";
+} from "@chatman-media/chatbot-rag";
 
 // 本地 Ollama（qwen3、llama3、mistral……）
 const chat = new OllamaChatClient({
@@ -806,7 +806,7 @@ const chat = new OpenAIChatClient({
 ### 摄取文档
 
 ```ts
-import { ingestFile, ingestDirectory, ingestText } from "@chatman/rag";
+import { ingestFile, ingestDirectory, ingestText } from "@chatman-media/chatbot-rag";
 
 // 单个文件
 await ingestFile("./docs/faq.md", { kb, embedder });
@@ -831,8 +831,8 @@ await ingestText(
 适用于需要转化而不仅仅是回答的机器人：
 
 ```ts
-import { answerWithRag } from "@chatman/rag";
-import type { Style } from "@chatman/rag";
+import { answerWithRag } from "@chatman-media/chatbot-rag";
+import type { Style } from "@chatman-media/chatbot-rag";
 
 const style: Style = {
   slug: "alina-nepq",

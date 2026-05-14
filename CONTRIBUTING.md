@@ -1,4 +1,4 @@
-# Contributing to @chatman/rag
+# Contributing to @chatman-media/chatbot-rag
 
 Thanks for taking the time to contribute!
 

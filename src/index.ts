@@ -1,10 +1,10 @@
 /**
- * @chatman/rag — production-grade RAG engine for conversational bots.
+ * @chatman-media/chatbot-rag — production-grade RAG engine for conversational bots.
  *
  * Quick start:
  *
  * ```ts
- * import { answerWithRag, OpenAIChatClient, OpenAIEmbeddingClient } from "@chatman/rag";
+ * import { answerWithRag, OpenAIChatClient, OpenAIEmbeddingClient } from "@chatman-media/chatbot-rag";
  *
  * const chat = new OpenAIChatClient({ apiKey, baseUrl, model: "gpt-4o-mini" });
  * const embedder = new OpenAIEmbeddingClient({ apiKey, baseUrl, model: "text-embedding-3-small", dim: 1536 });
