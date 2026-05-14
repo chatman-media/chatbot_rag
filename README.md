@@ -6,7 +6,7 @@
 
 **Production-grade RAG engine for conversational bots**
 
-[![CI](https://github.com/chatman-media/chatbot_rag/actions/workflows/ci.yml/badge.svg)](https://github.com/chatman-media/chatbot_rag/actions/workflows/ci.yml)
+[![CI](https://github.com/chatman-media/rag/actions/workflows/ci.yml/badge.svg)](https://github.com/chatman-media/rag/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Bun](https://img.shields.io/badge/Bun-compatible-fbf0df?logo=bun&logoColor=black)](https://bun.sh/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -333,12 +333,12 @@ Store it in your messages table for later analysis: retrieval quality trends, ha
 - [x] Semantic cache — `SemanticCache` with cosine similarity threshold
 - [x] Section-aware chunking — `chunkBySections()` splits by Markdown headings
 
-#### 🔜 Planned
-- [ ] **Reranker** — optional cross-encoder stage after RRF (Cohere / Jina API)
-- [ ] **Evaluation utilities** — `evalRetrieval()` → recall@k, MRR, NDCG
-- [ ] **`IConversationStore`** — unified interface for session history + summary persistence
-- [ ] **A/B test router** — randomise styles by `userId`, log conversion via `onTelemetry`
-- [ ] **Webhook / SSE server template** — `createRagServer()` on Bun.serve() with streaming
+#### ✅ Also Done
+- [x] **Reranker** — optional cross-encoder stage after RRF (`CohereReranker`, `JinaReranker`)
+- [x] **Evaluation utilities** — `evalRetrieval()` → recall@k, MRR, NDCG
+- [x] **`IConversationStore`** — unified interface for session history + summary persistence
+- [x] **A/B test router** — randomise styles by `userId`, log conversion via `onTelemetry`
+- [x] **SSE server** — `createRagServer()` on Bun.serve() with token streaming
 
 ### Contributing
 
@@ -660,12 +660,12 @@ const { text, telemetry } = await answerWithRag({ ... });
 - [x] Семантический кэш — `SemanticCache` с порогом косинусного сходства
 - [x] Семантическая нарезка — `chunkBySections()` по заголовкам Markdown
 
-#### 🔜 В планах
-- [ ] **Reranker** — опциональный cross-encoder после RRF (Cohere / Jina API)
-- [ ] **Утилиты оценки качества** — `evalRetrieval()` → recall@k, MRR, NDCG
-- [ ] **`IConversationStore`** — единый интерфейс для хранения истории и summary сессий
-- [ ] **A/B-роутер** — рандомизация стилей по `userId`, логирование конверсии через `onTelemetry`
-- [ ] **Шаблон Webhook / SSE сервера** — `createRagServer()` на Bun.serve() со стримингом
+#### ✅ Также реализовано
+- [x] **Reranker** — опциональный cross-encoder после RRF (`CohereReranker`, `JinaReranker`)
+- [x] **Утилиты оценки качества** — `evalRetrieval()` → recall@k, MRR, NDCG
+- [x] **`IConversationStore`** — единый интерфейс для хранения истории и summary сессий
+- [x] **A/B-роутер** — рандомизация стилей по `userId`, логирование конверсии через `onTelemetry`
+- [x] **SSE сервер** — `createRagServer()` на Bun.serve() со стримингом токенов
 
 ### Участие в разработке
 
@@ -987,12 +987,12 @@ const { text, telemetry } = await answerWithRag({ ... });
 - [x] 语义缓存 — 带余弦相似度阈值的 `SemanticCache`
 - [x] 按章节分块 — `chunkBySections()` 按 Markdown 标题分割
 
-#### 🔜 计划中
-- [ ] **Reranker** — RRF 后可选的交叉编码器阶段（Cohere / Jina API）
-- [ ] **评估工具** — `evalRetrieval()` → recall@k、MRR、NDCG
-- [ ] **`IConversationStore`** — 会话历史与摘要持久化的统一接口
-- [ ] **A/B 测试路由器** — 按 `userId` 随机化风格，通过 `onTelemetry` 记录转化
-- [ ] **Webhook / SSE 服务器模板** — 基于 Bun.serve() 的 `createRagServer()` 含流式输出
+#### ✅ 也已完成
+- [x] **Reranker** — RRF 后可选的交叉编码器阶段（`CohereReranker`、`JinaReranker`）
+- [x] **评估工具** — `evalRetrieval()` → recall@k、MRR、NDCG
+- [x] **`IConversationStore`** — 会话历史与摘要持久化的统一接口
+- [x] **A/B 测试路由器** — 按 `userId` 随机化风格，通过 `onTelemetry` 记录转化
+- [x] **SSE 服务器** — 基于 Bun.serve() 的 `createRagServer()` 含令牌流式输出
 
 ### 贡献
 

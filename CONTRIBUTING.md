@@ -6,7 +6,7 @@ Thanks for taking the time to contribute!
 
 ```bash
 # Clone and install
-git clone https://github.com/chatman-media/chatbot_rag.git
+git clone https://github.com/chatman-media/rag.git
 cd chatbot_rag
 bun install
 

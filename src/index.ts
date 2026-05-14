@@ -16,6 +16,9 @@
  * See README.md for full usage and `IKbStore` implementation guide.
  */
 
+// ── A/B style router ──────────────────────────────────────────────────────────
+export type { ABRouterOptions, ABVariant } from "./ab-router.ts";
+export { ABRouter } from "./ab-router.ts";
 // ── Core answer pipeline ─────────────────────────────────────────────────────
 export { answerWithRag, answerWithRagStream } from "./answer.ts";
 export type { AnswerInput, AnswerResult, AnswerTelemetry, Persona } from "./answer-types.ts";
@@ -26,8 +29,14 @@ export { ChatApiError, OpenAIChatClient } from "./chat.ts";
 export type { Chunk, ChunkOptions, SectionChunk } from "./chunk.ts";
 // ── Chunking ──────────────────────────────────────────────────────────────────
 export { chunkBySections, chunkText, estimateTokens } from "./chunk.ts";
+// ── Conversation store ────────────────────────────────────────────────────────
+export type { IConversationStore } from "./conversation-store.ts";
+export { InMemoryConversationStore } from "./conversation-store.ts";
 export type { EmbeddingClient } from "./embed.ts";
 export { EmbeddingApiError, NullEmbeddingClient, OpenAIEmbeddingClient } from "./embed.ts";
+// ── Retrieval evaluation ──────────────────────────────────────────────────────
+export type { EvalQuery, EvalResult, QueryMetrics } from "./eval.ts";
+export { evalRetrieval } from "./eval.ts";
 export type { ExtractFactsInput } from "./extract-user-facts.ts";
 // ── Memory & conversation management ─────────────────────────────────────────
 export { extractUserFacts, parseFactsFromLlmOutput } from "./extract-user-facts.ts";
@@ -68,6 +77,9 @@ export type { OpenRouterChatOptions } from "./providers/openrouter-chat.ts";
 export { OpenRouterChatClient } from "./providers/openrouter-chat.ts";
 export type { ReflectInput, ReflectResult } from "./reflect.ts";
 export { parseReflection, verifyAnswer } from "./reflect.ts";
+// ── Reranker ──────────────────────────────────────────────────────────────────
+export type { CohereRerankerOptions, JinaRerankerOptions, Reranker } from "./reranker.ts";
+export { CohereReranker, JinaReranker } from "./reranker.ts";
 // ── Retry / resilience ────────────────────────────────────────────────────────
 export type { RetryOptions } from "./retry.ts";
 export { withRetryChatClient, withRetryEmbeddingClient } from "./retry.ts";
@@ -79,6 +91,9 @@ export { sanitizeLlmOutput } from "./sanitize.ts";
 // ── Semantic cache ────────────────────────────────────────────────────────────
 export type { SemanticCacheOptions } from "./semantic-cache.ts";
 export { SemanticCache } from "./semantic-cache.ts";
+// ── SSE server ────────────────────────────────────────────────────────────────
+export type { RagRequestBody, RagServerOptions } from "./server.ts";
+export { createRagServer } from "./server.ts";
 export { InMemoryKbStore } from "./stores/memory-store.ts";
 export type {
   ComposeOptions,
