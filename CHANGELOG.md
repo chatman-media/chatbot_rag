@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/chatman-media/rag/compare/v1.0.0...v1.1.0) (2026-05-14)
+
+
+### Features
+
+* add tool calling support (single-cycle) to answerWithRag ([a0a67b1](https://github.com/chatman-media/rag/commit/a0a67b1a10a9936144f4205a17374f83d358e0ce))
+
 # 1.0.0 (2026-05-14)
 
 
