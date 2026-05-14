@@ -12,8 +12,8 @@ import {
   OllamaEmbeddingClient,
   answerWithRag,
   ingestText,
-} from "@chatman/rag";
-import type { Style } from "@chatman/rag";
+} from "@chatman-media/chatbot-rag";
+import type { Style } from "@chatman-media/chatbot-rag";
 
 import { InMemoryKbStore } from "../basic-rag/index.ts";
 
