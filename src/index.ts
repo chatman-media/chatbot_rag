@@ -123,3 +123,6 @@ export type { SummarizeInput } from "./summarize-conversation.ts";
 // ── Skill grading (post-hoc analytics) ───────────────────────────────────────
 export { gradeSkills } from "./grade-skills.ts";
 export type { GradeSkillsInput } from "./grade-skills.ts";
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+export { reciprocalRankFusion, sanitizeFtsQuery } from "./utils.ts";
