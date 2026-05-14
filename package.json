@@ -28,6 +28,14 @@
   ],
   "author": "Alexander Kireev",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chatman-media/chatbot_rag.git"
+  },
+  "homepage": "https://github.com/chatman-media/chatbot_rag#readme",
+  "bugs": {
+    "url": "https://github.com/chatman-media/chatbot_rag/issues"
+  },
   "dependencies": {
     "unpdf": "^1.6.2",
     "zod": "^4.4.1"
