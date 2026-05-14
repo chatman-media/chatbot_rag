@@ -316,6 +316,30 @@ const { text, telemetry } = await answerWithRag({ ... });
 
 Store it in your messages table for later analysis: retrieval quality trends, hallucination rate by model, A/B experiment outcomes.
 
+### Roadmap
+
+#### ✅ Done
+- [x] Hybrid retrieval — pgvector + BM25 + Reciprocal Rank Fusion
+- [x] Hallucination guard (`reflect`, `vacancyGuard`)
+- [x] Query rewriting before retrieval
+- [x] Sales personas — NEPQ / AIDA / PAS / SPIN
+- [x] Topic routing — zero-latency regex classifier
+- [x] Document ingestion — `.md` / `.txt` / `.pdf` with SHA-256 dedup
+- [x] Cross-session memory — user-facts extraction + conversation summarization
+- [x] Streaming — `answerWithRagStream()`, `ChatClient.stream()`
+- [x] `onTelemetry` callback — zero-setup metrics on every call
+- [x] `InMemoryKbStore` — database-free store for tests and prototypes
+- [x] Retry + exponential backoff — `withRetryChatClient()`, `withRetryEmbeddingClient()`
+- [x] Semantic cache — `SemanticCache` with cosine similarity threshold
+- [x] Section-aware chunking — `chunkBySections()` splits by Markdown headings
+
+#### 🔜 Planned
+- [ ] **Reranker** — optional cross-encoder stage after RRF (Cohere / Jina API)
+- [ ] **Evaluation utilities** — `evalRetrieval()` → recall@k, MRR, NDCG
+- [ ] **`IConversationStore`** — unified interface for session history + summary persistence
+- [ ] **A/B test router** — randomise styles by `userId`, log conversion via `onTelemetry`
+- [ ] **Webhook / SSE server template** — `createRagServer()` on Bun.serve() with streaming
+
 ### Contributing
 
 PRs and issues welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
@@ -619,6 +643,30 @@ const { text, telemetry } = await answerWithRag({ ... });
 
 Сохраняйте телеметрию в таблице сообщений для анализа: тренды качества поиска, уровень галлюцинаций по модели, результаты A/B-экспериментов.
 
+### Роадмап
+
+#### ✅ Реализовано
+- [x] Гибридный поиск — pgvector + BM25 + Reciprocal Rank Fusion
+- [x] Защита от галлюцинаций (`reflect`, `vacancyGuard`)
+- [x] Переформулировка запросов перед поиском
+- [x] Продажные персоны — NEPQ / AIDA / PAS / SPIN
+- [x] Маршрутизация по теме — regex-классификатор с нулевой задержкой
+- [x] Загрузка документов — `.md` / `.txt` / `.pdf` с SHA-256 дедупликацией
+- [x] Память между сессиями — извлечение фактов + сжатие диалога
+- [x] Стриминг — `answerWithRagStream()`, `ChatClient.stream()`
+- [x] Колбэк `onTelemetry` — метрики без настройки на каждый вызов
+- [x] `InMemoryKbStore` — хранилище без базы данных для тестов и прототипов
+- [x] Retry + экспоненциальный backoff — `withRetryChatClient()`, `withRetryEmbeddingClient()`
+- [x] Семантический кэш — `SemanticCache` с порогом косинусного сходства
+- [x] Семантическая нарезка — `chunkBySections()` по заголовкам Markdown
+
+#### 🔜 В планах
+- [ ] **Reranker** — опциональный cross-encoder после RRF (Cohere / Jina API)
+- [ ] **Утилиты оценки качества** — `evalRetrieval()` → recall@k, MRR, NDCG
+- [ ] **`IConversationStore`** — единый интерфейс для хранения истории и summary сессий
+- [ ] **A/B-роутер** — рандомизация стилей по `userId`, логирование конверсии через `onTelemetry`
+- [ ] **Шаблон Webhook / SSE сервера** — `createRagServer()` на Bun.serve() со стримингом
+
 ### Участие в разработке
 
 PR и issues приветствуются. Смотрите [CONTRIBUTING.md](CONTRIBUTING.md).
@@ -921,6 +969,30 @@ const { text, telemetry } = await answerWithRag({ ... });
 ```
 
 将遥测数据存入消息表，用于后续分析：检索质量趋势、各模型幻觉率、A/B 实验结果。
+
+### 路线图
+
+#### ✅ 已完成
+- [x] 混合检索 — pgvector + BM25 + 互惠排名融合（RRF）
+- [x] 幻觉防护（`reflect`、`vacancyGuard`）
+- [x] 检索前查询改写
+- [x] 销售人格 — NEPQ / AIDA / PAS / SPIN
+- [x] 主题路由 — 零延迟正则分类器
+- [x] 文档摄取 — `.md` / `.txt` / `.pdf` 含 SHA-256 去重
+- [x] 跨会话记忆 — 用户事实提取 + 对话摘要压缩
+- [x] 流式输出 — `answerWithRagStream()`、`ChatClient.stream()`
+- [x] `onTelemetry` 回调 — 每次调用零配置指标
+- [x] `InMemoryKbStore` — 无需数据库的测试与原型存储
+- [x] Retry + 指数退避 — `withRetryChatClient()`、`withRetryEmbeddingClient()`
+- [x] 语义缓存 — 带余弦相似度阈值的 `SemanticCache`
+- [x] 按章节分块 — `chunkBySections()` 按 Markdown 标题分割
+
+#### 🔜 计划中
+- [ ] **Reranker** — RRF 后可选的交叉编码器阶段（Cohere / Jina API）
+- [ ] **评估工具** — `evalRetrieval()` → recall@k、MRR、NDCG
+- [ ] **`IConversationStore`** — 会话历史与摘要持久化的统一接口
+- [ ] **A/B 测试路由器** — 按 `userId` 随机化风格，通过 `onTelemetry` 记录转化
+- [ ] **Webhook / SSE 服务器模板** — 基于 Bun.serve() 的 `createRagServer()` 含流式输出
 
 ### 贡献
 
