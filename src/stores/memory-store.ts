@@ -33,7 +33,7 @@ interface StoredChunk {
  *
  * @example
  * ```ts
- * import { InMemoryKbStore, ingestText, OllamaEmbeddingClient } from "@chatman-media/chatbot_rag";
+ * import { InMemoryKbStore, ingestText, OllamaEmbeddingClient } from "@chatman-media/rag";
  *
  * const kb = new InMemoryKbStore();
  * const embedder = new OllamaEmbeddingClient({ host: "http://localhost:11434", model: "nomic-embed-text", dim: 768 });

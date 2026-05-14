@@ -32,7 +32,7 @@ interface CohereRerankResponse {
  *
  * @example
  * ```ts
- * import { CohereReranker } from "@chatman-media/chatbot_rag";
+ * import { CohereReranker } from "@chatman-media/rag";
  *
  * const reranker = new CohereReranker({ apiKey: process.env.COHERE_API_KEY! });
  * const reranked = await reranker.rerank(question, hits, 5);
@@ -110,7 +110,7 @@ interface JinaRerankResponse {
  *
  * @example
  * ```ts
- * import { JinaReranker } from "@chatman-media/chatbot_rag";
+ * import { JinaReranker } from "@chatman-media/rag";
  *
  * const reranker = new JinaReranker({ apiKey: process.env.JINA_API_KEY! });
  * const reranked = await reranker.rerank(question, hits, 5);

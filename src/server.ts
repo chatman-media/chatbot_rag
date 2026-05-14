@@ -64,7 +64,7 @@ export interface RagRequestBody {
  *
  * @example
  * ```ts
- * import { createRagServer } from "@chatman-media/chatbot_rag";
+ * import { createRagServer } from "@chatman-media/rag";
  *
  * const server = createRagServer({
  *   kb, chat, embedder,

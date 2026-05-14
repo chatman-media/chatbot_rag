@@ -46,7 +46,7 @@ export interface EvalResult {
  *
  * @example
  * ```ts
- * import { evalRetrieval } from "@chatman-media/chatbot_rag";
+ * import { evalRetrieval } from "@chatman-media/rag";
  *
  * const result = await evalRetrieval(
  *   [

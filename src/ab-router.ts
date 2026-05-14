@@ -33,7 +33,7 @@ export interface ABRouterOptions {
  *
  * @example
  * ```ts
- * import { ABRouter, answerWithRag } from "@chatman-media/chatbot_rag";
+ * import { ABRouter, answerWithRag } from "@chatman-media/rag";
  *
  * const router = new ABRouter({
  *   variants: [

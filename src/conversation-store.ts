@@ -48,7 +48,7 @@ interface ConversationData {
  *   InMemoryConversationStore,
  *   summarizeConversation,
  *   answerWithRag,
- * } from "@chatman-media/chatbot_rag";
+ * } from "@chatman-media/rag";
  *
  * const store = new InMemoryConversationStore({ maxHistoryLength: 20, ttlMs: 2 * 60 * 60_000 });
  *

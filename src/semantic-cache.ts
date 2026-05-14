@@ -37,7 +37,7 @@ interface CacheEntry {
  *
  * @example
  * ```ts
- * import { SemanticCache, answerWithRag } from "@chatman-media/chatbot_rag";
+ * import { SemanticCache, answerWithRag } from "@chatman-media/rag";
  *
  * const cache = new SemanticCache(embedder, { threshold: 0.93, ttlMs: 30 * 60_000 });
  *

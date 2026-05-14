@@ -102,7 +102,7 @@ export interface SectionChunk extends Chunk {
  *
  * @example
  * ```ts
- * import { chunkBySections } from "@chatman-media/chatbot_rag";
+ * import { chunkBySections } from "@chatman-media/rag";
  *
  * const chunks = chunkBySections(markdownString, { maxChars: 1200 });
  * // chunks[0].heading → "Installation"

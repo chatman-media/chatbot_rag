@@ -1,5 +1,5 @@
 /**
- * Minimal @chatman-media/chatbot_rag example — in-memory knowledge base, no database.
+ * Minimal @chatman-media/rag example — in-memory knowledge base, no database.
  *
  * Usage:
  *   OPENAI_API_KEY=sk-... bun run index.ts
@@ -19,7 +19,7 @@ import {
   OpenAIEmbeddingClient,
   answerWithRag,
   ingestText,
-} from "@chatman-media/chatbot_rag";
+} from "@chatman-media/rag";
 
 // ── In-memory KB store ──────────────────────────────────────────────────────
 

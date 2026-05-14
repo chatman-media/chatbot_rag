@@ -73,7 +73,7 @@ function resolveOpts(opts: RetryOptions): Required<RetryOptions> {
  *
  * @example
  * ```ts
- * import { withRetryChatClient, OpenAIChatClient } from "@chatman-media/chatbot_rag";
+ * import { withRetryChatClient, OpenAIChatClient } from "@chatman-media/rag";
  *
  * const chat = withRetryChatClient(
  *   new OpenAIChatClient({ apiKey, baseUrl, model }),
@@ -116,7 +116,7 @@ export function withRetryChatClient(client: ChatClient, opts: RetryOptions = {})
  *
  * @example
  * ```ts
- * import { withRetryEmbeddingClient, OpenAIEmbeddingClient } from "@chatman-media/chatbot_rag";
+ * import { withRetryEmbeddingClient, OpenAIEmbeddingClient } from "@chatman-media/rag";
  *
  * const embedder = withRetryEmbeddingClient(
  *   new OpenAIEmbeddingClient({ apiKey, baseUrl, model, dim: 1536 }),
