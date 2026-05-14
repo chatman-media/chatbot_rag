@@ -20,10 +20,10 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target bun --format esm && tsc -p tsconfig.build.json",
-    "typecheck": "tsc --noEmit",
-    "check": "biome check ./src",
-    "format": "biome format --write ./src",
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun --format esm && ./node_modules/.bin/tsc -p tsconfig.build.json",
+    "typecheck": "./node_modules/.bin/tsc --noEmit",
+    "check": "./node_modules/.bin/biome check ./src",
+    "format": "./node_modules/.bin/biome format --write ./src",
     "prepublishOnly": "bun run check && bun run typecheck && bun run build"
   },
   "engines": {
