@@ -8,7 +8,8 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "lib": ["ES2022"],
-    "types": []
+    "types": ["bun-types"],
+    "skipLibCheck": true
   },
   "include": ["src/**/*.ts"]
 }
