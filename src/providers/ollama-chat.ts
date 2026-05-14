@@ -115,7 +115,8 @@ function injectNoThinkHint(messages: ChatMessage[]): ChatMessage[] {
   if (sysIdx === -1) {
     return [{ role: "system", content: HINT }, ...messages];
   }
-  const sys = messages[sysIdx]!;
+  const sys = messages[sysIdx];
+  if (!sys) return messages;
   const updated: ChatMessage = {
     ...sys,
     content: `${HINT}\n\n${sys.content}`,

@@ -94,7 +94,7 @@ export function classifyTopic(question: string): string | null {
   for (const { topic, pattern } of TOPIC_PATTERNS) {
     if (pattern.test(question)) matches.push(topic);
   }
-  if (matches.length === 1) return matches[0]!;
+  if (matches.length === 1) return matches[0] ?? null;
   return null;
 }
 

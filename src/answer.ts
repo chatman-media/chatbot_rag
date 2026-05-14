@@ -1,6 +1,3 @@
-import { composeSystemPrompt } from "./prompt.ts";
-import type { FunnelStage } from "./styles.ts";
-import type { KbSearchHit } from "./types.ts";
 import {
   type AnswerInput,
   type AnswerResult,
@@ -18,8 +15,10 @@ import {
   personaFactReply,
   personaSmalltalkReply,
 } from "./persona-shortcuts.ts";
+import { composeSystemPrompt } from "./prompt.ts";
 import { rewriteQuery } from "./rewrite-query.ts";
 import { sanitizeLlmOutput } from "./sanitize.ts";
+import type { FunnelStage } from "./styles.ts";
 import {
   buildSystemPrompt,
   DEFAULT_PERSONA,
@@ -27,6 +26,7 @@ import {
 } from "./system-prompt.ts";
 import { applyStyleRules } from "./text-style-rules.ts";
 import { classifyTopic } from "./topic-classifier.ts";
+import type { KbSearchHit } from "./types.ts";
 
 // Re-exports for backward compatibility with existing importers.
 export {
@@ -248,10 +248,11 @@ export async function answerWithRag(input: AnswerInput): Promise<AnswerResult> {
       k: topK,
       vectorOnly: !input.hybridSearch,
     });
+    const maxDist = input.maxDistance;
     const hits =
-      input.hybridSearch || input.maxDistance === undefined
+      input.hybridSearch || maxDist === undefined
         ? allHits
-        : allHits.filter((h) => h.distance <= input.maxDistance!);
+        : allHits.filter((h) => h.distance <= maxDist);
     const retrievalMs = Date.now() - retrievalStart;
     const baseTelemetry: AnswerTelemetry = {
       path: "ok",
@@ -283,10 +284,11 @@ export async function answerWithRag(input: AnswerInput): Promise<AnswerResult> {
     allHits = await runSearch(null);
     usedTopic = null;
   }
+  const maxDist = input.maxDistance;
   const hits =
-    input.hybridSearch || input.maxDistance === undefined
+    input.hybridSearch || maxDist === undefined
       ? allHits
-      : allHits.filter((h) => h.distance <= input.maxDistance!);
+      : allHits.filter((h) => h.distance <= maxDist);
   const retrievalMs = Date.now() - retrievalStart;
 
   const baseTelemetry: AnswerTelemetry = {

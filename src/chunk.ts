@@ -64,11 +64,12 @@ export function chunkText(text: string, opts: Partial<ChunkOptions> = {}): Chunk
 
   if (overlapChars > 0 && segments.length > 1) {
     for (let i = 1; i < segments.length; i++) {
-      const prevTail = segments[i - 1]!.slice(-overlapChars);
-      segments[i] = `${prevTail}${segments[i]}`;
-      if (segments[i]!.length > maxChars) {
-        segments[i] = segments[i]!.slice(0, maxChars);
+      const prevTail = (segments[i - 1] ?? "").slice(-overlapChars);
+      let current = `${prevTail}${segments[i] ?? ""}`;
+      if (current.length > maxChars) {
+        current = current.slice(0, maxChars);
       }
+      segments[i] = current;
     }
   }
 

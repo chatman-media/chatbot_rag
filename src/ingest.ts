@@ -1,11 +1,10 @@
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, extname, join, relative, resolve } from "node:path";
-
-import type { IKbStore } from "./types.ts";
 import { type ChunkOptions, chunkText } from "./chunk.ts";
 import type { EmbeddingClient } from "./embed.ts";
 import { parsePdf } from "./parse-pdf.ts";
+import type { IKbStore } from "./types.ts";
 
 const SUPPORTED_EXTS = new Set([".md", ".txt", ".pdf"]);
 
@@ -58,13 +57,15 @@ export async function ingestFile(path: string, deps: IngestDeps): Promise<Ingest
   }
 
   const vectors = await deps.embedder.embed(chunks.map((c) => c.text));
-  for (let i = 0; i < chunks.length; i++) {
+  for (const [i, chunk] of chunks.entries()) {
+    const vec = vectors[i];
+    if (!vec) throw new Error(`embedder returned no vector for chunk ${i}`);
     await deps.kb.insertChunkWithEmbedding({
       documentId: doc.id,
-      chunkIndex: chunks[i]!.index,
-      text: chunks[i]!.text,
-      tokenCount: chunks[i]!.tokenCount,
-      embedding: vectors[i]!,
+      chunkIndex: chunk.index,
+      text: chunk.text,
+      tokenCount: chunk.tokenCount,
+      embedding: vec,
     });
   }
   return { source, documentId: doc.id, chunks: chunks.length, created: true };
@@ -110,13 +111,15 @@ export async function ingestText(
   }
 
   const vectors = await deps.embedder.embed(chunks.map((c) => c.text));
-  for (let i = 0; i < chunks.length; i++) {
+  for (const [i, chunk] of chunks.entries()) {
+    const vec = vectors[i];
+    if (!vec) throw new Error(`embedder returned no vector for chunk ${i}`);
     await deps.kb.insertChunkWithEmbedding({
       documentId: doc.id,
-      chunkIndex: chunks[i]!.index,
-      text: chunks[i]!.text,
-      tokenCount: chunks[i]!.tokenCount,
-      embedding: vectors[i]!,
+      chunkIndex: chunk.index,
+      text: chunk.text,
+      tokenCount: chunk.tokenCount,
+      embedding: vec,
     });
   }
   return { source, documentId: doc.id, chunks: chunks.length, created: true };
@@ -155,7 +158,7 @@ export async function ingestDirectory(
 export function deriveTopicFromPath(file: string, root: string): string | null {
   const rel = relative(root, dirname(file));
   if (!rel || rel === "." || rel.startsWith("..")) return null;
-  const first = rel.split(/[/\\]/)[0]!;
+  const first = rel.split(/[/\\]/)[0];
   return first || null;
 }
 

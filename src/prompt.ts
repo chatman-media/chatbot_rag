@@ -1,5 +1,5 @@
-import { renderSummaryBlock, renderUserFactsBlock } from "./system-prompt.ts";
 import type { ComposeOptions, FunnelStage, Hook, Style } from "./styles.ts";
+import { renderSummaryBlock, renderUserFactsBlock } from "./system-prompt.ts";
 
 const HOOK_LABELS: Record<Hook["kind"], string> = {
   social_proof: "СОЦ. ДОКАЗАТЕЛЬСТВО",

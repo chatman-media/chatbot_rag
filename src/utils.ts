@@ -69,9 +69,7 @@ export function reciprocalRankFusion(
  */
 export function sanitizeFtsQuery(raw: string): string {
   if (!raw) return "";
-  const stripped = raw
-    .replace(/["'()*:.\\^&|!]/g, " ")
-    .replace(/\s+(AND|OR|NOT|NEAR)\s+/gi, " ");
+  const stripped = raw.replace(/["'()*:.\\^&|!]/g, " ").replace(/\s+(AND|OR|NOT|NEAR)\s+/gi, " ");
   const tokens = stripped
     .split(/\s+/)
     .map((t) => t.trim())

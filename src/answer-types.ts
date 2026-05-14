@@ -1,7 +1,6 @@
-import type { SkillForPrompt } from "./styles.ts";
-import type { FunnelStage, Style } from "./styles.ts";
 import type { ChatClient, ChatMessage } from "./chat.ts";
 import type { EmbeddingClient } from "./embed.ts";
+import type { FunnelStage, SkillForPrompt, Style } from "./styles.ts";
 import type { IKbStore, KbSearchHit } from "./types.ts";
 
 export const NO_CONTEXT_MARKER = "__NO_CONTEXT__";

@@ -89,8 +89,9 @@ export const stripAILeadIns: TextStyleRule = {
       "",
     );
     // Восстанавливаем заглавную букву если её срезали.
-    if (stripped !== s && stripped.length > 0 && /[a-zа-яё]/u.test(stripped[0]!)) {
-      return stripped[0]!.toUpperCase() + stripped.slice(1);
+    const first = stripped[0];
+    if (stripped !== s && first && /[a-zа-яё]/u.test(first)) {
+      return first.toUpperCase() + stripped.slice(1);
     }
     return stripped.length === 0 ? s : stripped;
   },
@@ -115,7 +116,7 @@ export const capitalizeFirstLetter: TextStyleRule = {
     const match = /[\p{L}]/u.exec(s);
     if (!match || match.index === undefined) return s;
     const i = match.index;
-    const ch = s[i]!;
+    const ch = s[i] ?? "";
     const upper = ch.toUpperCase();
     if (ch === upper) return s;
     return s.slice(0, i) + upper + s.slice(i + 1);
