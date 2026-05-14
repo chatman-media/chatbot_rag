@@ -49,7 +49,7 @@ export interface AnswerInput {
 }
 
 export interface AnswerTelemetry {
-  path: "smalltalk" | "persona_fact" | "no_context" | "ungrounded" | "ok";
+  path: "smalltalk" | "persona_fact" | "no_context" | "ungrounded" | "ok" | "cache_hit";
   total_ms?: number;
   retrieval_ms?: number;
   generation_ms?: number;

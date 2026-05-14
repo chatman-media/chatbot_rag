@@ -23,9 +23,9 @@ export { NO_CONTEXT_MARKER } from "./answer-types.ts";
 // ── LLM clients ──────────────────────────────────────────────────────────────
 export type { ChatClient, ChatCompletionOpts, ChatMessage, ChatRole } from "./chat.ts";
 export { ChatApiError, OpenAIChatClient } from "./chat.ts";
-export type { Chunk, ChunkOptions } from "./chunk.ts";
+export type { Chunk, ChunkOptions, SectionChunk } from "./chunk.ts";
 // ── Chunking ──────────────────────────────────────────────────────────────────
-export { chunkText, estimateTokens } from "./chunk.ts";
+export { chunkBySections, chunkText, estimateTokens } from "./chunk.ts";
 export type { EmbeddingClient } from "./embed.ts";
 export { EmbeddingApiError, NullEmbeddingClient, OpenAIEmbeddingClient } from "./embed.ts";
 export type { ExtractFactsInput } from "./extract-user-facts.ts";
@@ -68,11 +68,17 @@ export type { OpenRouterChatOptions } from "./providers/openrouter-chat.ts";
 export { OpenRouterChatClient } from "./providers/openrouter-chat.ts";
 export type { ReflectInput, ReflectResult } from "./reflect.ts";
 export { parseReflection, verifyAnswer } from "./reflect.ts";
+// ── Retry / resilience ────────────────────────────────────────────────────────
+export type { RetryOptions } from "./retry.ts";
+export { withRetryChatClient, withRetryEmbeddingClient } from "./retry.ts";
 export type { RewriteQueryInput } from "./rewrite-query.ts";
 // ── Retrieval enhancements ────────────────────────────────────────────────────
 export { questionNeedsRewrite, rewriteQuery, sanitizeRewritten } from "./rewrite-query.ts";
 // ── Output sanitization ───────────────────────────────────────────────────────
 export { sanitizeLlmOutput } from "./sanitize.ts";
+// ── Semantic cache ────────────────────────────────────────────────────────────
+export type { SemanticCacheOptions } from "./semantic-cache.ts";
+export { SemanticCache } from "./semantic-cache.ts";
 export { InMemoryKbStore } from "./stores/memory-store.ts";
 export type {
   ComposeOptions,
@@ -116,6 +122,5 @@ export {
 export { classifyTopic, classifyTopicAll, KNOWN_TOPICS } from "./topic-classifier.ts";
 // ── Storage interfaces & implementations ─────────────────────────────────────
 export type { IKbStore, IKbSuggestionsStore, KbSearchHit } from "./types.ts";
-
 // ── Utilities ─────────────────────────────────────────────────────────────────
 export { reciprocalRankFusion, sanitizeFtsQuery } from "./utils.ts";
