@@ -1,4 +1,9 @@
-import { ChatApiError, type ChatClient, type ChatMessage } from "../chat.ts";
+import {
+  ChatApiError,
+  type ChatClient,
+  type ChatCompletionOpts,
+  type ChatMessage,
+} from "../chat.ts";
 
 export type FetchLike = typeof fetch;
 
@@ -45,10 +50,7 @@ export class OllamaChatClient implements ChatClient {
     this.timeoutMs = opts.timeoutMs ?? 5 * 60_000;
   }
 
-  async complete(
-    messages: ChatMessage[],
-    opts: { temperature?: number; numPredict?: number } = {},
-  ): Promise<string> {
+  async complete(messages: ChatMessage[], opts: ChatCompletionOpts = {}): Promise<string> {
     // num_ctx kept modest to keep KV-cache small (qwen3 default = 40K → 11GB
     // VRAM, way more than we need; 5 chunks × 1500 chars ≈ 1700 tokens).
     // num_predict caps reply length so the bot never rambles. Tests can
@@ -96,6 +98,59 @@ export class OllamaChatClient implements ChatClient {
       throw new ChatApiError(res.status, "no message.content in ollama response");
     }
     return content;
+  }
+
+  async *stream(messages: ChatMessage[], opts: ChatCompletionOpts = {}): AsyncIterable<string> {
+    const ollamaOptions: Record<string, unknown> = { num_ctx: 4096 };
+    if (opts.numPredict !== undefined) ollamaOptions.num_predict = opts.numPredict;
+    if (opts.temperature !== undefined) ollamaOptions.temperature = opts.temperature;
+
+    const body: Record<string, unknown> = {
+      model: this.model,
+      messages: this.disableThinking ? injectNoThinkHint(messages) : messages,
+      stream: true,
+      keep_alive: "30m",
+      options: ollamaOptions,
+    };
+    if (this.disableThinking) body.think = false;
+
+    const res = await this.fetchImpl(`${this.host}/api/chat`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(this.timeoutMs),
+    });
+
+    if (!res.ok || !res.body) {
+      const text = await res.text().catch(() => "");
+      throw new ChatApiError(res.status, text || "ollama stream error");
+    }
+
+    const decoder = new TextDecoder();
+    const reader = res.body.getReader();
+    let buf = "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const chunk = JSON.parse(line) as OllamaChatResponse;
+            const token = chunk.message?.content;
+            if (token) yield token;
+            if (chunk.done) return;
+          } catch {
+            // skip malformed line
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
   }
 }
 

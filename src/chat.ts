@@ -7,16 +7,54 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface ChatCompletionOpts {
+  temperature?: number;
+  /** Optional output-token cap (`num_predict` for Ollama, `max_tokens`
+   *  for OpenAI). Implementations free to ignore or pick a default. */
+  numPredict?: number;
+}
+
 export interface ChatClient {
-  complete(
-    messages: ChatMessage[],
-    opts?: {
-      temperature?: number;
-      /** Optional output-token cap (`num_predict` for Ollama, `max_tokens`
-       *  for OpenAI). Implementations free to ignore or pick a default. */
-      numPredict?: number;
-    },
-  ): Promise<string>;
+  complete(messages: ChatMessage[], opts?: ChatCompletionOpts): Promise<string>;
+  /**
+   * Token-by-token streaming variant. Yields raw text chunks as they arrive.
+   * Optional — callers should check `typeof client.stream === "function"` before
+   * using, or fall back to `complete()`.
+   */
+  stream?(messages: ChatMessage[], opts?: ChatCompletionOpts): AsyncIterable<string>;
+}
+
+/** Parse OpenAI-compatible SSE stream, yielding text delta chunks. */
+async function* parseOpenAiSseStream(body: ReadableStream<Uint8Array>): AsyncIterable<string> {
+  const decoder = new TextDecoder();
+  const reader = body.getReader();
+  let buf = "";
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split("\n");
+      buf = lines.pop() ?? "";
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data:")) continue;
+        const data = trimmed.slice(5).trim();
+        if (data === "[DONE]") return;
+        try {
+          const chunk = JSON.parse(data) as {
+            choices?: Array<{ delta?: { content?: string } }>;
+          };
+          const token = chunk.choices?.[0]?.delta?.content;
+          if (token) yield token;
+        } catch {
+          // malformed SSE line — skip
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
 }
 
 export class ChatApiError extends Error {
@@ -62,12 +100,13 @@ export class OpenAIChatClient implements ChatClient {
     this.fetchImpl = opts.fetch ?? globalThis.fetch.bind(globalThis);
   }
 
-  async complete(messages: ChatMessage[], opts: { temperature?: number } = {}): Promise<string> {
+  async complete(messages: ChatMessage[], opts: ChatCompletionOpts = {}): Promise<string> {
     const body: Record<string, unknown> = {
       model: this.model,
       messages,
     };
     if (opts.temperature !== undefined) body.temperature = opts.temperature;
+    if (opts.numPredict !== undefined) body.max_tokens = opts.numPredict;
 
     const res = await this.fetchImpl(`${this.baseUrl}/chat/completions`, {
       method: "POST",
@@ -93,5 +132,32 @@ export class OpenAIChatClient implements ChatClient {
       throw new ChatApiError(res.status, "no choices returned by model");
     }
     return first;
+  }
+
+  async *stream(messages: ChatMessage[], opts: ChatCompletionOpts = {}): AsyncIterable<string> {
+    const body: Record<string, unknown> = {
+      model: this.model,
+      messages,
+      stream: true,
+    };
+    if (opts.temperature !== undefined) body.temperature = opts.temperature;
+    if (opts.numPredict !== undefined) body.max_tokens = opts.numPredict;
+
+    const res = await this.fetchImpl(`${this.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(this.timeoutMs),
+    });
+
+    if (!res.ok || !res.body) {
+      const err = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+      throw new ChatApiError(res.status, err.error?.message ?? "stream request failed");
+    }
+
+    yield* parseOpenAiSseStream(res.body);
   }
 }

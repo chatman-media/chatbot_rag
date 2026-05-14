@@ -179,6 +179,173 @@ async function answerFromHits(opts: {
   };
 }
 
+/**
+ * Streaming variant of `answerWithRag`. Yields raw text tokens as they arrive
+ * from the LLM. The final telemetry is delivered via `input.onTelemetry` (if
+ * set). Falls back to `complete()` when the chat client has no `stream()`.
+ *
+ * Note: hallucination guard (`reflect`, `vacancyGuard`) is not applied during
+ * streaming — fact-checking requires the full answer. Use `answerWithRag()` when
+ * fact-checking is required.
+ */
+export async function* answerWithRagStream(input: AnswerInput): AsyncIterable<string> {
+  const startedAt = Date.now();
+  const activePersona: Persona =
+    input.style != null
+      ? {
+          name: input.style.persona.name,
+          role: input.style.persona.role,
+          ...(input.style.persona.company != null && input.style.persona.company.trim() !== ""
+            ? { company: input.style.persona.company.trim() }
+            : {}),
+        }
+      : (input.persona ?? DEFAULT_PERSONA);
+
+  // ── Persona shortcuts (no retrieval needed) ──────────────────────────────
+  if (isPersonaSmalltalkQuestion(input.question)) {
+    const text = applyStyleRules(personaSmalltalkReply(activePersona));
+    yield text;
+    input.onTelemetry?.({ path: "smalltalk", total_ms: Date.now() - startedAt });
+    return;
+  }
+  if (isBotPresenceQuestion(input.question)) {
+    const text = applyStyleRules(botPresenceReply(activePersona));
+    yield text;
+    input.onTelemetry?.({ path: "smalltalk", total_ms: Date.now() - startedAt });
+    return;
+  }
+  const factKey = isPersonalFactQuestion(input.question);
+  if (factKey) {
+    const factReply = personaFactReply(activePersona, factKey);
+    if (factReply) {
+      yield applyStyleRules(factReply);
+      input.onTelemetry?.({ path: "persona_fact", total_ms: Date.now() - startedAt });
+      return;
+    }
+  }
+
+  // ── Retrieval (same logic as answerWithRag) ──────────────────────────────
+  const topK = input.topK ?? 5;
+  const searchQuery = input.rewriteQueryBeforeRetrieval
+    ? await rewriteQuery({
+        question: input.question,
+        ...(input.history ? { history: input.history } : {}),
+        chat: input.chat,
+      })
+    : input.question;
+
+  const retrievalStart = Date.now();
+  const [questionVec] = await input.embedder.embed([searchQuery]);
+  if (!questionVec) throw new Error("Embedder returned no vector for question");
+
+  let hits: KbSearchHit[];
+  if (input.booksPriority) {
+    hits = await input.kb.prioritySearch({
+      embedding: questionVec,
+      query: searchQuery,
+      k: topK,
+      vectorOnly: !input.hybridSearch,
+    });
+  } else {
+    const topic = input.topicRouting ? classifyTopic(input.question) : null;
+    const runSearch = (filterTopic: string | null) =>
+      input.hybridSearch
+        ? input.kb.hybridSearch({
+            embedding: questionVec,
+            query: searchQuery,
+            k: topK,
+            ...(filterTopic !== null ? { topic: filterTopic } : {}),
+          })
+        : input.kb.search(questionVec, topK, filterTopic);
+    hits = await runSearch(topic);
+    if (topic !== null && hits.length === 0) hits = await runSearch(null);
+  }
+
+  const maxDist = input.maxDistance;
+  if (!input.hybridSearch && maxDist !== undefined) {
+    hits = hits.filter((h) => h.distance <= maxDist);
+  }
+  const retrievalMs = Date.now() - retrievalStart;
+
+  if (hits.length === 0 && !(input.vacanciesBlock ?? "").trim() && !input.style) {
+    input.onTelemetry?.({
+      path: "no_context",
+      retrieval_ms: retrievalMs,
+      total_ms: Date.now() - startedAt,
+    });
+    yield NO_CONTEXT_MARKER;
+    return;
+  }
+
+  // ── Prompt composition ───────────────────────────────────────────────────
+  const kbContextStr = hits
+    .map((h, i) => `[#${i + 1}] (source: ${h.title})\n${h.text}`)
+    .join("\n\n");
+  const vacBlock = (input.vacanciesBlock ?? "").trim();
+  const context = vacBlock
+    ? kbContextStr
+      ? `${vacBlock}\n\n${kbContextStr}`
+      : vacBlock
+    : kbContextStr;
+  const contextForPrompt =
+    input.style && !context
+      ? "АКТУАЛЬНЫЕ ВАКАНСИИ: нет данных. Конкретных вакансий, зарплат и городов сейчас нет в базе — не называй никаких цифр и мест."
+      : context;
+
+  let systemPrompt: string;
+  let temperature = legacyRagSamplingTemperature(activePersona);
+  if (input.style) {
+    const stage: FunnelStage = input.stage ?? "qualify";
+    systemPrompt = composeSystemPrompt(input.style, stage, contextForPrompt, {
+      includeFewShot: input.includeFewShot ?? true,
+      ...(input.userFacts ? { userFacts: input.userFacts } : {}),
+      ...(input.conversationSummary ? { conversationSummary: input.conversationSummary } : {}),
+      ...(input.skills && input.skills.length > 0 ? { skills: input.skills } : {}),
+    });
+    temperature = input.style.model.temperature;
+  } else {
+    systemPrompt = buildSystemPrompt(
+      input.persona ?? DEFAULT_PERSONA,
+      context,
+      input.userFacts,
+      input.conversationSummary,
+    );
+  }
+
+  const messages: ChatMessage[] = [
+    { role: "system", content: systemPrompt },
+    ...(input.history ?? []),
+    { role: "user", content: input.question },
+  ];
+
+  const numPredict = input.numPredict ?? input.style?.model.maxTokens;
+  const completionOpts = { temperature, ...(numPredict !== undefined ? { numPredict } : {}) };
+
+  // ── Stream or fall back to complete() ───────────────────────────────────
+  const generationStart = Date.now();
+  if (typeof input.chat.stream === "function") {
+    for await (const token of input.chat.stream(messages, completionOpts)) {
+      yield token;
+    }
+  } else {
+    const raw = await input.chat.complete(messages, completionOpts);
+    yield sanitizeLlmOutput(raw);
+  }
+
+  const generationMs = Date.now() - generationStart;
+  input.onTelemetry?.({
+    path: "ok",
+    retrieval_ms: retrievalMs,
+    generation_ms: generationMs,
+    top_distances: hits.map((h) => Math.round(h.distance * 10000) / 10000),
+    ...(input.hybridSearch ? { hybrid: true } : {}),
+    ...(searchQuery !== input.question
+      ? { original_query: input.question, rewritten_query: searchQuery }
+      : {}),
+    total_ms: Date.now() - startedAt,
+  });
+}
+
 export async function answerWithRag(input: AnswerInput): Promise<AnswerResult> {
   const startedAt = Date.now();
   const activePersona: Persona =
@@ -197,33 +364,39 @@ export async function answerWithRag(input: AnswerInput): Promise<AnswerResult> {
   );
 
   if (isPersonaSmalltalkQuestion(input.question)) {
-    return {
+    const result: AnswerResult = {
       text: applyStyleRules(personaSmalltalkReply(activePersona)),
       usedChunkIds: [],
       hits: [],
       telemetry: { path: "smalltalk", total_ms: Date.now() - startedAt },
     };
+    input.onTelemetry?.(result.telemetry);
+    return result;
   }
 
   if (isBotPresenceQuestion(input.question)) {
-    return {
+    const result: AnswerResult = {
       text: applyStyleRules(botPresenceReply(activePersona)),
       usedChunkIds: [],
       hits: [],
       telemetry: { path: "smalltalk", total_ms: Date.now() - startedAt },
     };
+    input.onTelemetry?.(result.telemetry);
+    return result;
   }
 
   const factKey = isPersonalFactQuestion(input.question);
   if (factKey) {
     const factReply = personaFactReply(activePersona, factKey);
     if (factReply) {
-      return {
+      const result: AnswerResult = {
         text: applyStyleRules(factReply),
         usedChunkIds: [],
         hits: [],
         telemetry: { path: "persona_fact", total_ms: Date.now() - startedAt },
       };
+      input.onTelemetry?.(result.telemetry);
+      return result;
     }
   }
 
@@ -263,7 +436,9 @@ export async function answerWithRag(input: AnswerInput): Promise<AnswerResult> {
         ? { original_query: input.question, rewritten_query: searchQuery }
         : {}),
     };
-    return answerFromHits({ hits, baseTelemetry, startedAt, input, activePersona });
+    const result = await answerFromHits({ hits, baseTelemetry, startedAt, input, activePersona });
+    input.onTelemetry?.(result.telemetry);
+    return result;
   }
 
   const topic = input.topicRouting ? classifyTopic(input.question) : null;
@@ -305,5 +480,7 @@ export async function answerWithRag(input: AnswerInput): Promise<AnswerResult> {
   console.log(
     `[rag] retrieval hits=${hits.length} topic=${usedTopic ?? "global"} ms=${Date.now() - retrievalStart}`,
   );
-  return answerFromHits({ hits, baseTelemetry, startedAt, input, activePersona });
+  const result = await answerFromHits({ hits, baseTelemetry, startedAt, input, activePersona });
+  input.onTelemetry?.(result.telemetry);
+  return result;
 }
