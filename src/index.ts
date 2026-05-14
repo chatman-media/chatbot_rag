@@ -95,6 +95,8 @@ export { SemanticCache } from "./semantic-cache.ts";
 export type { RagRequestBody, RagServerOptions } from "./server.ts";
 export { createRagServer } from "./server.ts";
 export { InMemoryKbStore } from "./stores/memory-store.ts";
+// ── Structured output ─────────────────────────────────────────────────────────
+export { parseStructuredOutput, zodToJsonSchema } from "./structured-output.ts";
 export type {
   ComposeOptions,
   FunnelStage,

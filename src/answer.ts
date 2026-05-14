@@ -1,3 +1,4 @@
+import type { z } from "zod";
 import {
   type AnswerInput,
   type AnswerResult,
@@ -18,6 +19,11 @@ import {
 import { composeSystemPrompt } from "./prompt.ts";
 import { rewriteQuery } from "./rewrite-query.ts";
 import { sanitizeLlmOutput } from "./sanitize.ts";
+import {
+  injectJsonInstruction,
+  parseStructuredOutput,
+  zodToJsonSchema,
+} from "./structured-output.ts";
 import type { FunnelStage } from "./styles.ts";
 import {
   buildSystemPrompt,
@@ -165,6 +171,40 @@ async function answerFromHits(opts: {
       input.onTelemetry?.(result.telemetry);
       return result;
     }
+  }
+
+  // ── Structured output ────────────────────────────────────────────────────
+  if (input.outputSchema) {
+    const jsonSchema = zodToJsonSchema(input.outputSchema);
+    let rawJson: string;
+
+    if (typeof input.chat.completeStructured === "function") {
+      rawJson = await input.chat.completeStructured(messages, jsonSchema, llmOpts);
+    } else {
+      messages[0] = {
+        role: "system",
+        content: injectJsonInstruction(messages[0]?.content ?? "", jsonSchema),
+      };
+      rawJson = await input.chat.complete(messages, { ...llmOpts, temperature: 0 });
+    }
+
+    const parsed = parseStructuredOutput(rawJson, input.outputSchema);
+    const generationMs = Date.now() - generationStart;
+    const telemetry: AnswerTelemetry = {
+      ...baseTelemetry,
+      generation_ms: generationMs,
+      ...(toolCallTelemetry ? { toolCall: toolCallTelemetry } : {}),
+    };
+    const result: AnswerResult = {
+      text: rawJson,
+      output: parsed.success ? parsed.data : undefined,
+      usedChunkIds: hits.map((h) => h.chunk_id),
+      hits,
+      telemetry: { ...telemetry, path: "ok", total_ms: Date.now() - startedAt },
+    };
+    if (!parsed.success) console.warn(`[structured-output] validation failed: ${parsed.error}`);
+    input.onTelemetry?.(result.telemetry);
+    return result;
   }
 
   const raw = await input.chat.complete(messages, llmOpts);
@@ -399,6 +439,10 @@ export async function* answerWithRagStream(input: AnswerInput): AsyncIterable<st
   });
 }
 
+export async function answerWithRag<T extends z.ZodTypeAny>(
+  input: AnswerInput & { outputSchema: T },
+): Promise<AnswerResult<z.infer<T>>>;
+export async function answerWithRag(input: AnswerInput): Promise<AnswerResult>;
 export async function answerWithRag(input: AnswerInput): Promise<AnswerResult> {
   const startedAt = Date.now();
   const activePersona: Persona =

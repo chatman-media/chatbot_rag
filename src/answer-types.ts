@@ -1,3 +1,4 @@
+import type { z } from "zod";
 import type { ChatClient, ChatMessage } from "./chat.ts";
 import type { EmbeddingClient } from "./embed.ts";
 import type { FunnelStage, SkillForPrompt, Style } from "./styles.ts";
@@ -55,6 +56,28 @@ export interface AnswerInput {
    * otherwise falls back to prompt-based tool injection.
    */
   tools?: AnyRagTool[];
+  /**
+   * When provided, the LLM is instructed to return a JSON object matching this
+   * Zod schema. The parsed and validated value is available as `result.output`.
+   * Uses OpenAI's native `response_format` when available; falls back to prompt
+   * injection for other providers (Ollama, OpenRouter, etc.).
+   *
+   * @example
+   * ```ts
+   * const result = await answerWithRag({
+   *   question: "Classify this lead",
+   *   kb, chat, embedder,
+   *   outputSchema: z.object({
+   *     intent: z.enum(["buy", "info", "not_interested"]),
+   *     budget: z.number().optional(),
+   *     nextAction: z.string(),
+   *   }),
+   * });
+   * console.log(result.output.intent); // "buy" | "info" | "not_interested"
+   * ```
+   */
+  // biome-ignore lint/suspicious/noExplicitAny: intentional open type
+  outputSchema?: z.ZodTypeAny;
 }
 
 export interface AnswerTelemetry {
@@ -72,9 +95,11 @@ export interface AnswerTelemetry {
   toolCall?: { name: string; result: unknown };
 }
 
-export interface AnswerResult {
+export interface AnswerResult<TOutput = unknown> {
   text: string;
   usedChunkIds: number[];
   hits: KbSearchHit[];
   telemetry: AnswerTelemetry;
+  /** Parsed and validated output when `outputSchema` was passed to `answerWithRag`. */
+  output?: TOutput;
 }

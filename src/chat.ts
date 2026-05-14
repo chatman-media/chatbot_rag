@@ -47,6 +47,16 @@ export interface ChatClient {
     content: string | null;
     toolCalls: Array<{ id: string; name: string; args: Record<string, unknown> }>;
   }>;
+  /**
+   * Structured output variant. Returns a raw JSON string validated against the
+   * provided JSON Schema. Uses OpenAI's `response_format` when available.
+   * Optional — `answerWithRag` falls back to prompt injection when not implemented.
+   */
+  completeStructured?(
+    messages: ChatMessage[],
+    jsonSchema: Record<string, unknown>,
+    opts?: ChatCompletionOpts,
+  ): Promise<string>;
 }
 
 /** Parse OpenAI-compatible SSE stream, yielding text delta chunks. */
@@ -216,6 +226,42 @@ export class OpenAIChatClient implements ChatClient {
     }
 
     return { content: msg.content ?? "", toolCalls: [] };
+  }
+
+  async completeStructured(
+    messages: ChatMessage[],
+    jsonSchema: Record<string, unknown>,
+    opts: ChatCompletionOpts = {},
+  ): Promise<string> {
+    const body: Record<string, unknown> = {
+      model: this.model,
+      messages,
+      response_format: {
+        type: "json_schema",
+        json_schema: { name: "output", schema: jsonSchema, strict: true },
+      },
+    };
+    if (opts.temperature !== undefined) body.temperature = opts.temperature;
+    if (opts.numPredict !== undefined) body.max_tokens = opts.numPredict;
+
+    const res = await this.fetchImpl(`${this.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${this.apiKey}` },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(this.timeoutMs),
+    });
+
+    let payload: ChatResponse;
+    try {
+      payload = (await res.json()) as ChatResponse;
+    } catch {
+      throw new ChatApiError(res.status, "non-JSON response");
+    }
+    if (!res.ok) throw new ChatApiError(res.status, payload.error?.message ?? "unexpected error");
+
+    const content = payload.choices?.[0]?.message?.content;
+    if (!content) throw new ChatApiError(res.status, "no content returned by model");
+    return content;
   }
 
   async *stream(messages: ChatMessage[], opts: ChatCompletionOpts = {}): AsyncIterable<string> {
