@@ -1,0 +1,39 @@
+{
+  "name": "@chatman/rag",
+  "version": "0.1.0",
+  "description": "Production-grade RAG engine for conversational bots — hybrid retrieval (pgvector + BM25), pluggable LLM providers, sales-style prompt composition, hallucination guard, query rewriting.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "check": "biome check ./src",
+    "format": "biome format --write ./src"
+  },
+  "keywords": [
+    "rag",
+    "retrieval-augmented-generation",
+    "pgvector",
+    "bm25",
+    "hybrid-search",
+    "llm",
+    "chatbot",
+    "sales-bot",
+    "telegram-bot",
+    "ollama",
+    "openai",
+    "openrouter"
+  ],
+  "author": "Alexander Kireev",
+  "license": "MIT",
+  "dependencies": {
+    "unpdf": "^1.6.2",
+    "zod": "^4.4.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.14",
+    "typescript": "^6.0.3"
+  }
+}
