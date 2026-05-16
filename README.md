@@ -11,6 +11,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Bun](https://img.shields.io/badge/Bun-compatible-fbf0df?logo=bun&logoColor=black)](https://bun.sh/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![used by @chatman-media/sales](https://img.shields.io/badge/used%20by-@chatman--media%2Fsales-6366f1)](https://github.com/chatman-media/sales)
 [![pgvector](https://img.shields.io/badge/pgvector-hybrid%20search-336791?logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector)
 [![OpenAI Compatible](https://img.shields.io/badge/OpenAI-compatible-412991?logo=openai&logoColor=white)](https://platform.openai.com/docs/api-reference)
 [![Ollama](https://img.shields.io/badge/Ollama-local%20LLM-black?logo=ollama)](https://ollama.com/)
@@ -162,8 +163,6 @@ class MyKbStore implements IKbStore {
   async insertChunkWithEmbedding(input: { documentId; chunkIndex; text; tokenCount; embedding }) { ... }
 }
 ```
-
-> **Reference implementation** (PostgreSQL + pgvector) ships in the main [sales-guru](https://github.com/chatman-media/sales-guru) repo as `src/rag/store-adapter.ts`.
 
 ### LLM providers
 
@@ -490,8 +489,6 @@ class MyKbStore implements IKbStore {
 }
 ```
 
-> **Эталонная реализация** (PostgreSQL + pgvector) находится в главном репозитории [sales-guru](https://github.com/chatman-media/sales-guru) — файл `src/rag/store-adapter.ts`.
-
 ### LLM-провайдеры
 
 ```ts
@@ -816,8 +813,6 @@ class MyKbStore implements IKbStore {
   async insertChunkWithEmbedding(input: { documentId; chunkIndex; text; tokenCount; embedding }) { ... }
 }
 ```
-
-> **参考实现**（PostgreSQL + pgvector）位于主仓库 [sales-guru](https://github.com/chatman-media/sales-guru) 的 `src/rag/store-adapter.ts` 文件中。
 
 ### LLM 提供商
 
