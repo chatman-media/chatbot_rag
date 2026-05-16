@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/chatman-media/rag/compare/v1.1.0...v1.2.0) (2026-05-16)
+
+
+### Features
+
+* add structured output support with Zod schema validation ([45c763c](https://github.com/chatman-media/rag/commit/45c763c061ab2c9a42eb08355f187f978976ab83))
+
 # [1.1.0](https://github.com/chatman-media/rag/compare/v1.0.0...v1.1.0) (2026-05-14)
 
 
