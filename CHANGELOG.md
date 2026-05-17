@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/chatman-media/rag/compare/v1.2.1...v1.3.0) (2026-05-17)
+
+
+### Features
+
+* multi-cycle agentic tool calling ([6925261](https://github.com/chatman-media/rag/commit/69252616ae659b8e621bf25488f62d6f520af878))
+
 ## [1.2.1](https://github.com/chatman-media/rag/compare/v1.2.0...v1.2.1) (2026-05-17)
 
 
