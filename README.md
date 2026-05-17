@@ -339,9 +339,9 @@ Store it in your messages table for later analysis: retrieval quality trends, ha
 - [x] **`IConversationStore`** — unified interface for session history + summary persistence
 - [x] **A/B test router** — randomise styles by `userId`, log conversion via `onTelemetry`
 - [x] **SSE server** — `createRagServer()` on Bun.serve() with token streaming
+- [x] **Multi-cycle tool calling** — agentic tool loop with parallel tool execution, bounded by `maxToolCycles` (works in `answerWithRag` and `answerWithRagStream`)
 
 #### 🚧 Planned
-- [ ] **Multi-cycle tool calling** — agentic tool loop instead of the current single-cycle execution
 - [ ] **`PgVectorKbStore`** — ready-made pgvector `IKbStore` adapter shipped out of the box
 - [ ] **More store adapters** — Qdrant and Pinecone backends
 - [ ] **OpenTelemetry exporter** — bridge `onTelemetry` events to OTel spans and metrics
@@ -673,9 +673,9 @@ const { text, telemetry } = await answerWithRag({ ... });
 - [x] **`IConversationStore`** — единый интерфейс для хранения истории и summary сессий
 - [x] **A/B-роутер** — рандомизация стилей по `userId`, логирование конверсии через `onTelemetry`
 - [x] **SSE сервер** — `createRagServer()` на Bun.serve() со стримингом токенов
+- [x] **Multi-cycle tool calling** — агентный цикл вызова инструментов с параллельным выполнением, ограниченный `maxToolCycles` (работает в `answerWithRag` и `answerWithRagStream`)
 
 #### 🚧 В планах
-- [ ] **Multi-cycle tool calling** — агентный цикл вызова инструментов вместо текущего single-cycle
 - [ ] **`PgVectorKbStore`** — готовый адаптер `IKbStore` для pgvector из коробки
 - [ ] **Доп. адаптеры хранилищ** — бэкенды Qdrant и Pinecone
 - [ ] **OpenTelemetry exporter** — экспорт событий `onTelemetry` в спаны и метрики OTel
@@ -1007,9 +1007,9 @@ const { text, telemetry } = await answerWithRag({ ... });
 - [x] **`IConversationStore`** — 会话历史与摘要持久化的统一接口
 - [x] **A/B 测试路由器** — 按 `userId` 随机化风格，通过 `onTelemetry` 记录转化
 - [x] **SSE 服务器** — 基于 Bun.serve() 的 `createRagServer()` 含令牌流式输出
+- [x] **多轮工具调用** — 智能体式工具循环，支持并行执行工具，由 `maxToolCycles` 限制（`answerWithRag` 与 `answerWithRagStream` 均支持）
 
 #### 🚧 计划中
-- [ ] **多轮工具调用** — 用智能体式工具循环替代当前的单轮执行
 - [ ] **`PgVectorKbStore`** — 开箱即用的 pgvector `IKbStore` 适配器
 - [ ] **更多存储适配器** — Qdrant 与 Pinecone 后端
 - [ ] **OpenTelemetry 导出器** — 将 `onTelemetry` 事件桥接到 OTel 跨度与指标
