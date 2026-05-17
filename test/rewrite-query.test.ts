@@ -32,9 +32,9 @@ describe("questionNeedsRewrite", () => {
   });
 
   test("returns false for a long self-contained question", () => {
-    expect(
-      questionNeedsRewrite("какие условия оплаты для моделей в городе Стамбул", history),
-    ).toBe(false);
+    expect(questionNeedsRewrite("какие условия оплаты для моделей в городе Стамбул", history)).toBe(
+      false,
+    );
   });
 });
 
