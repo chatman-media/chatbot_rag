@@ -67,13 +67,15 @@ export function reciprocalRankFusion(
  * sanitizeFtsQuery('OR "injection"')
  * // → "injection:*"
  */
+const FTS_KEYWORDS = new Set(["and", "or", "not", "near"]);
+
 export function sanitizeFtsQuery(raw: string): string {
   if (!raw) return "";
-  const stripped = raw.replace(/["'()*:.\\^&|!]/g, " ").replace(/\s+(AND|OR|NOT|NEAR)\s+/gi, " ");
+  const stripped = raw.replace(/["'()*:.\\^&|!]/g, " ");
   const tokens = stripped
     .split(/\s+/)
     .map((t) => t.trim())
-    .filter((t) => t.length >= 2);
+    .filter((t) => t.length >= 2 && !FTS_KEYWORDS.has(t.toLowerCase()));
   if (tokens.length === 0) return "";
   return tokens.map((t) => `${t}:*`).join(" | ");
 }
