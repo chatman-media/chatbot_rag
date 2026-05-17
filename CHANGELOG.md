@@ -1,3 +1,11 @@
+## [1.2.1](https://github.com/chatman-media/rag/compare/v1.2.0...v1.2.1) (2026-05-17)
+
+
+### Bug Fixes
+
+* guard rerankers against out-of-range API indices ([77e28ff](https://github.com/chatman-media/rag/commit/77e28ff7769a28052ee6bdc6ef93a81725a7bfff))
+* strip boolean keywords regardless of position in sanitizeFtsQuery ([7a749e6](https://github.com/chatman-media/rag/commit/7a749e648d0b4fa98b8df79e72af5ca2b550b317))
+
 # [1.2.0](https://github.com/chatman-media/rag/compare/v1.1.0...v1.2.0) (2026-05-16)
 
 
