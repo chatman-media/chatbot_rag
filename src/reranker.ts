@@ -78,11 +78,12 @@ export class CohereReranker implements Reranker {
       throw new Error(`CohereReranker: ${payload.message ?? `HTTP ${res.status}`}`);
     }
 
-    return payload.results.slice(0, k).map(({ index, relevance_score }) => ({
-      ...(hits[index] as KbSearchHit),
+    return payload.results.slice(0, k).flatMap(({ index, relevance_score }) => {
+      const hit = hits[index];
+      if (!hit) return [];
       // Remap to distance convention: lower = more relevant
-      distance: 1 - relevance_score,
-    }));
+      return [{ ...hit, distance: 1 - relevance_score }];
+    });
   }
 }
 
@@ -156,9 +157,10 @@ export class JinaReranker implements Reranker {
       throw new Error(`JinaReranker: ${payload.detail ?? `HTTP ${res.status}`}`);
     }
 
-    return payload.results.slice(0, k).map(({ index, relevance_score }) => ({
-      ...(hits[index] as KbSearchHit),
-      distance: 1 - relevance_score,
-    }));
+    return payload.results.slice(0, k).flatMap(({ index, relevance_score }) => {
+      const hit = hits[index];
+      if (!hit) return [];
+      return [{ ...hit, distance: 1 - relevance_score }];
+    });
   }
 }
