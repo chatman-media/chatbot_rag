@@ -76,7 +76,6 @@ export interface AnswerInput {
    * console.log(result.output.intent); // "buy" | "info" | "not_interested"
    * ```
    */
-  // biome-ignore lint/suspicious/noExplicitAny: intentional open type
   outputSchema?: z.ZodTypeAny;
 }
 
