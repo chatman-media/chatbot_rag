@@ -3,10 +3,11 @@ import { z } from "zod";
 /**
  * A tool the LLM can call during `answerWithRag`.
  *
- * Pass one or more tools via `AnswerInput.tools`. When the model decides to
- * use a tool, the library executes `execute()` automatically and feeds the
- * result back to the model for a final answer (single-cycle — one tool call
- * per request).
+ * Pass one or more tools via `AnswerInput.tools`. Tool calling is agentic and
+ * multi-cycle: when the model requests tools, the library executes `execute()`
+ * automatically (tools in the same cycle run in parallel), feeds the results
+ * back, and lets the model request more — until it produces a final answer or
+ * `AnswerInput.maxToolCycles` is reached.
  *
  * @example
  * ```ts

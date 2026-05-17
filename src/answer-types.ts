@@ -49,13 +49,22 @@ export interface AnswerInput {
    */
   onTelemetry?: (telemetry: AnswerTelemetry) => void;
   /**
-   * Optional tools the LLM can call during answer generation (single-cycle).
-   * When the model decides to call a tool, `execute()` is called automatically
-   * and the result is fed back for a final answer.
-   * Requires `chat` to implement `completeWithTools` (e.g. `OpenAIChatClient`),
-   * otherwise falls back to prompt-based tool injection.
+   * Optional tools the LLM can call during answer generation. Tool calling is
+   * agentic and multi-cycle: each cycle the model may request one or more tools
+   * (executed in parallel), see the results, and request more — until it
+   * produces a final answer or `maxToolCycles` is reached.
+   * Requires `chat` to implement `completeWithTools` (e.g. `OpenAIChatClient`);
+   * when not implemented, tools are ignored.
    */
   tools?: AnyRagTool[];
+  /**
+   * Maximum number of agentic tool-calling cycles. Each cycle is one LLM call
+   * that may request tools, followed by execution of those tools. When the
+   * limit is reached, a final answer is forced WITHOUT tools. Only relevant
+   * when `tools` is set. Default: 4 (caps at 5 LLM calls including the final
+   * answer — note the latency and cost of a long tool chain).
+   */
+  maxToolCycles?: number;
   /**
    * When provided, the LLM is instructed to return a JSON object matching this
    * Zod schema. The parsed and validated value is available as `result.output`.
@@ -90,8 +99,23 @@ export interface AnswerTelemetry {
   original_query?: string;
   rewritten_query?: string;
   factCheck?: { grounded: boolean; vacancyOk: boolean; reason?: string };
-  /** Populated when a tool was called during answer generation. */
+  /**
+   * @deprecated Use `toolCalls`. Retained for backward compatibility — set to
+   * the first tool call when any tools ran during answer generation.
+   */
   toolCall?: { name: string; result: unknown };
+  /**
+   * Every tool call executed across all agentic cycles, in order. Note that
+   * `args` may contain user-derived input — treat as sensitive if your tools
+   * receive PII.
+   */
+  toolCalls?: Array<{
+    name: string;
+    args: Record<string, unknown>;
+    result: unknown;
+    error?: boolean;
+    cycle: number;
+  }>;
 }
 
 export interface AnswerResult<TOutput = unknown> {

@@ -31,8 +31,13 @@ import {
   legacyRagSamplingTemperature,
 } from "./system-prompt.ts";
 import { applyStyleRules } from "./text-style-rules.ts";
+import {
+  buildToolTelemetry,
+  DEFAULT_MAX_TOOL_CYCLES,
+  runToolLoop,
+  type ToolCallRecord,
+} from "./tool-loop.ts";
 import type { AnyRagTool } from "./tools.ts";
-import { toolToOpenAIFunction } from "./tools.ts";
 import { classifyTopic } from "./topic-classifier.ts";
 import type { KbSearchHit } from "./types.ts";
 
@@ -125,48 +130,35 @@ async function answerFromHits(opts: {
   const numPredict = input.numPredict ?? input.style?.model.maxTokens;
   const llmOpts = { temperature, ...(numPredict !== undefined ? { numPredict } : {}) };
 
-  let toolCallTelemetry: AnswerTelemetry["toolCall"] | undefined;
+  let toolCallRecords: ToolCallRecord[] = [];
 
   if (input.tools && input.tools.length > 0 && typeof input.chat.completeWithTools === "function") {
-    const toolDefs = input.tools.map(toolToOpenAIFunction);
-    const toolResult = await input.chat.completeWithTools(messages, toolDefs, llmOpts);
+    const loop = await runToolLoop({
+      chat: input.chat,
+      messages,
+      tools: input.tools as AnyRagTool[],
+      llmOpts,
+      maxCycles: input.maxToolCycles ?? DEFAULT_MAX_TOOL_CYCLES,
+    });
+    toolCallRecords = loop.toolCalls;
 
-    if (toolResult.toolCalls.length > 0) {
-      const tc = toolResult.toolCalls[0];
-      if (!tc)
-        return {
-          text: NO_CONTEXT_MARKER,
-          usedChunkIds: [],
-          hits: [],
-          telemetry: { ...baseTelemetry, path: "no_context", total_ms: Date.now() - startedAt },
-        };
-      const tool = (input.tools as AnyRagTool[]).find((t) => t.name === tc.name);
-      if (tool) {
-        const result = await tool.execute(tc.args);
-        toolCallTelemetry = { name: tc.name, result };
-
-        messages.push({
-          role: "assistant",
-          content: null,
-          tool_calls: [
-            {
-              id: tc.id,
-              type: "function",
-              function: { name: tc.name, arguments: JSON.stringify(tc.args) },
-            },
-          ],
-        });
-        messages.push({ role: "tool", content: JSON.stringify(result), tool_call_id: tc.id });
-      }
-    } else if (toolResult.content !== null) {
-      const text = sanitizeLlmOutput(toolResult.content);
+    // Model finished with text and no structured output requested → return directly.
+    // Otherwise (loop exhausted, or content + outputSchema) fall through: `messages`
+    // already carries all tool results, and the blocks below run without tools.
+    if (loop.content !== null && !input.outputSchema) {
+      const text = sanitizeLlmOutput(loop.content);
       const generationMs = Date.now() - generationStart;
-      const telemetry: AnswerTelemetry = { ...baseTelemetry, generation_ms: generationMs };
       const result: AnswerResult = {
         text,
         usedChunkIds: hits.map((h) => h.chunk_id),
         hits,
-        telemetry: { ...telemetry, path: "ok", total_ms: Date.now() - startedAt },
+        telemetry: {
+          ...baseTelemetry,
+          generation_ms: generationMs,
+          path: "ok",
+          total_ms: Date.now() - startedAt,
+          ...buildToolTelemetry(toolCallRecords),
+        },
       };
       input.onTelemetry?.(result.telemetry);
       return result;
@@ -193,7 +185,7 @@ async function answerFromHits(opts: {
     const telemetry: AnswerTelemetry = {
       ...baseTelemetry,
       generation_ms: generationMs,
-      ...(toolCallTelemetry ? { toolCall: toolCallTelemetry } : {}),
+      ...buildToolTelemetry(toolCallRecords),
     };
     const result: AnswerResult = {
       text: rawJson,
@@ -214,7 +206,7 @@ async function answerFromHits(opts: {
   const telemetry: AnswerTelemetry = {
     ...baseTelemetry,
     generation_ms: generationMs,
-    ...(toolCallTelemetry ? { toolCall: toolCallTelemetry } : {}),
+    ...buildToolTelemetry(toolCallRecords),
   };
 
   const runVacancyCheck = vacBlock.length > 0 && input.vacancyGuard !== false;
@@ -280,6 +272,9 @@ async function answerFromHits(opts: {
  * Note: hallucination guard (`reflect`, `vacancyGuard`) is not applied during
  * streaming — fact-checking requires the full answer. Use `answerWithRag()` when
  * fact-checking is required.
+ *
+ * When `tools` are provided, the agentic tool loop runs first as a blocking
+ * prefix — no tokens stream until the loop finishes; only the final answer streams.
  */
 export async function* answerWithRagStream(input: AnswerInput): AsyncIterable<string> {
   const startedAt = Date.now();
@@ -414,8 +409,38 @@ export async function* answerWithRagStream(input: AnswerInput): AsyncIterable<st
   const numPredict = input.numPredict ?? input.style?.model.maxTokens;
   const completionOpts = { temperature, ...(numPredict !== undefined ? { numPredict } : {}) };
 
-  // ── Stream or fall back to complete() ───────────────────────────────────
+  // ── Agentic tool loop (blocking prefix — runs before any token streams) ──
   const generationStart = Date.now();
+  let toolCallRecords: ToolCallRecord[] = [];
+  if (input.tools && input.tools.length > 0 && typeof input.chat.completeWithTools === "function") {
+    const loop = await runToolLoop({
+      chat: input.chat,
+      messages,
+      tools: input.tools as AnyRagTool[],
+      llmOpts: completionOpts,
+      maxCycles: input.maxToolCycles ?? DEFAULT_MAX_TOOL_CYCLES,
+    });
+    toolCallRecords = loop.toolCalls;
+    if (loop.content !== null) {
+      yield sanitizeLlmOutput(loop.content);
+      input.onTelemetry?.({
+        path: "ok",
+        retrieval_ms: retrievalMs,
+        generation_ms: Date.now() - generationStart,
+        top_distances: hits.map((h) => Math.round(h.distance * 10000) / 10000),
+        ...(input.hybridSearch ? { hybrid: true } : {}),
+        ...(searchQuery !== input.question
+          ? { original_query: input.question, rewritten_query: searchQuery }
+          : {}),
+        ...buildToolTelemetry(toolCallRecords),
+        total_ms: Date.now() - startedAt,
+      });
+      return;
+    }
+    // Loop exhausted: fall through to stream the final answer WITHOUT tools.
+  }
+
+  // ── Stream or fall back to complete() ───────────────────────────────────
   if (typeof input.chat.stream === "function") {
     for await (const token of input.chat.stream(messages, completionOpts)) {
       yield token;
@@ -435,6 +460,7 @@ export async function* answerWithRagStream(input: AnswerInput): AsyncIterable<st
     ...(searchQuery !== input.question
       ? { original_query: input.question, rewritten_query: searchQuery }
       : {}),
+    ...buildToolTelemetry(toolCallRecords),
     total_ms: Date.now() - startedAt,
   });
 }
