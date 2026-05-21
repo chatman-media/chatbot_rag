@@ -143,3 +143,17 @@ export { classifyTopic, classifyTopicAll, KNOWN_TOPICS } from "./topic-classifie
 export type { IKbStore, IKbSuggestionsStore, KbSearchHit } from "./types.ts";
 // ── Utilities ─────────────────────────────────────────────────────────────────
 export { reciprocalRankFusion, sanitizeFtsQuery } from "./utils.ts";
+// ── Vision / photo classification ────────────────────────────────────────────
+export type {
+  ClassifyPhotoOptions,
+  PassportIdentity,
+  PhotoClass,
+  VisionProvider,
+} from "./vision.ts";
+export {
+  classifyPhoto,
+  extractPassportIdentity,
+  PHOTO_CLASSES,
+  parsePassportJson,
+  parsePhotoClass,
+} from "./vision.ts";
