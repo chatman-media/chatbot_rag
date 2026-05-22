@@ -1,0 +1,363 @@
+<div align="center">
+
+<a name="top"></a>
+
+# @chatman-media/rag
+
+**面向对话机器人的生产级 RAG 引擎**
+
+[![npm version](https://img.shields.io/npm/v/@chatman-media/rag?logo=npm&color=22c55e)](https://www.npmjs.com/package/@chatman-media/rag)
+[![CI](https://github.com/chatman-media/rag/actions/workflows/ci.yml/badge.svg)](https://github.com/chatman-media/rag/actions/workflows/ci.yml)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Bun](https://img.shields.io/badge/Bun-compatible-fbf0df?logo=bun&logoColor=black)](https://bun.sh/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![used by @chatman-media/sales](https://img.shields.io/badge/used%20by-@chatman--media%2Fsales-6366f1)](https://github.com/chatman-media/sales)
+[![pgvector](https://img.shields.io/badge/pgvector-hybrid%20search-336791?logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector)
+[![OpenAI Compatible](https://img.shields.io/badge/OpenAI-compatible-412991?logo=openai&logoColor=white)](https://platform.openai.com/docs/api-reference)
+[![Ollama](https://img.shields.io/badge/Ollama-local%20LLM-black?logo=ollama)](https://ollama.com/)
+
+混合检索 · 销售人格 · 幻觉防护 · 零框架依赖
+
+---
+
+🌐 **Language / Язык / 语言**
+
+[🇬🇧 English](README.md) &nbsp;·&nbsp; [🇷🇺 Русский](README.ru.md) &nbsp;·&nbsp; 🇨🇳 **中文**
+
+</div>
+
+---
+
+## 为什么选择 @chatman-media/rag？
+
+大多数 RAG 演示止步于「embed → search → prompt」。本包展示的是**生产环境**应有的样子：
+
+| 特性 | 说明 |
+|------|------|
+| 🔍 **混合检索** | pgvector 余弦距离 + BM25 全文检索，通过互惠排名融合（RRF）合并结果 |
+| 🧠 **幻觉防护** | 单次 LLM 调用同时检查知识库接地性和领域特定事实 |
+| ✏️ **查询改写** | 在检索前解析代词和省略式追问 |
+| 🎭 **销售人格** | NEPQ / AIDA / PAS / SPIN 框架，风格配置支持 A/B 测试 |
+| 🏷️ **主题路由** | 确定性正则分类器，零延迟、零成本 |
+| 🔌 **可插拔后端** | 通过 `IKbStore` 支持任意存储；通过 `ChatClient` 支持任意 LLM |
+| 📄 **摄取流水线** | `.md` / `.txt` / `.pdf` 带重叠分块和 SHA-256 去重 |
+| 💬 **记忆** | 跨会话用户事实提取 + 对话摘要压缩 |
+
+## 安装
+
+```bash
+bun add @chatman-media/rag     # Bun
+npm install @chatman-media/rag # npm / pnpm / yarn
+```
+
+**环境要求：** Node 18+ 或 Bun 1.x。无原生模块——纯 TypeScript。
+
+## 快速开始
+
+```ts
+import { answerWithRag, OpenAIChatClient, OpenAIEmbeddingClient } from "@chatman-media/rag";
+
+const chat = new OpenAIChatClient({
+  apiKey: process.env.OPENAI_API_KEY!,
+  baseUrl: "https://api.openai.com/v1",
+  model: "gpt-4o-mini",
+});
+
+const embedder = new OpenAIEmbeddingClient({
+  apiKey: process.env.OPENAI_API_KEY!,
+  baseUrl: "https://api.openai.com/v1",
+  model: "text-embedding-3-small",
+  dim: 1536,
+});
+
+const result = await answerWithRag({
+  question: "迪拜的工作条件是什么？",
+  kb: myKbStore,       // 您的 IKbStore 实现——见下文
+  chat,
+  embedder,
+  hybridSearch: true,  // 向量 + BM25 融合
+  topicRouting: true,  // 按主题范围检索
+  reflect: true,       // 幻觉防护
+});
+
+console.log(result.text);       // 机器人回复
+console.log(result.telemetry);  // retrieval_ms, generation_ms, path, factCheck, ...
+```
+
+## 架构
+
+```
+answerWithRag(question, kb, chat, embedder, options?)
+│
+├─ 🚀 人格快捷回复（正则，无 LLM 调用）
+│     闲聊 · 机器人身份 · 个人事实
+│
+├─ ✏️  [可选] rewriteQuery
+│     LLM 将「那边呢？」「多少钱？」展开为完整问题
+│
+├─ 🔢 embedder.embed(question) → float32[]
+│
+├─ 🔍 检索
+│     ├─ 向量: kb.search(embedding, k, topic?)
+│     ├─ BM25: kb.searchBm25(query, k, topic?)       ← 混合模式
+│     └─ RRF 融合 → KbSearchHit[]
+│
+├─ 📝 提示词组合
+│     composeSystemPrompt(style, stage, kbContext)    ← 销售模式
+│     buildSystemPrompt(persona, context)             ← 旧版模式
+│
+├─ 🤖 chat.complete(messages) → 原始字符串
+│
+├─ 🧹 sanitizeLlmOutput
+│     去除 <think> · Markdown · 破折号 · AI 开场白
+│
+└─ 🛡️  [可选] checkFacts
+      知识库接地性 + 领域事实验证
+      → grounded=false → 返回 NO_CONTEXT_MARKER
+```
+
+## 实现 IKbStore
+
+引擎与存储无关。为您的后端实现 `IKbStore`：
+
+```ts
+import type { IKbStore, KbSearchHit } from "@chatman-media/rag";
+
+class MyKbStore implements IKbStore {
+  async search(embedding: number[], k: number, topic?: string | null): Promise<KbSearchHit[]> {
+    // 纯向量搜索——余弦距离，值越小越近
+    return db.query(`
+      SELECT chunk_id, text, source, title,
+             (embedding <=> $1::vector) AS distance
+      FROM kb_chunks
+      ORDER BY embedding <=> $1::vector ASC
+      LIMIT $2
+    `, [JSON.stringify(embedding), k]);
+  }
+
+  async hybridSearch(input: {
+    embedding: number[]; query: string; k?: number; topic?: string | null;
+  }): Promise<KbSearchHit[]> {
+    const vec = await this.search(input.embedding, (input.k ?? 5) * 2, input.topic);
+    const bm25 = await this.searchBm25(input.query, (input.k ?? 5) * 2, input.topic);
+    return reciprocalRankFusion(vec, bm25, input.k ?? 5);
+  }
+
+  async prioritySearch(input: {
+    embedding: number[]; query: string; k?: number; vectorOnly?: boolean;
+  }): Promise<KbSearchHit[]> {
+    const books = await this.searchTopic(input.embedding, "books", input.k ?? 5);
+    if (books.length > 0) return books;
+    return input.vectorOnly
+      ? this.search(input.embedding, input.k ?? 5)
+      : this.hybridSearch(input);
+  }
+
+  async getDocumentBySource(source: string) { ... }
+  async countChunksForDocument(documentId: number) { ... }
+  async deleteDocument(id: number) { ... }
+  async upsertDocument(input: { source; title; contentHash; topic? }) { ... }
+  async insertChunkWithEmbedding(input: { documentId; chunkIndex; text; tokenCount; embedding }) { ... }
+}
+```
+
+## LLM 提供商
+
+```ts
+import {
+  OpenAIChatClient,          // OpenAI、Together、Groq 及任何 OpenAI 兼容接口
+  OllamaChatClient,          // 通过 Ollama 运行本地模型
+  OpenRouterChatClient,      // 单个 API 密钥访问 100+ 模型
+  OpenAIEmbeddingClient,
+  OllamaEmbeddingClient,
+} from "@chatman-media/rag";
+
+// 本地 Ollama（qwen3、llama3、mistral……）
+const chat = new OllamaChatClient({
+  host: "http://localhost:11434",
+  model: "qwen3:latest",
+  disableThinking: true,  // 去除 <think>…</think> 块
+  timeoutMs: 5 * 60_000,
+});
+
+// OpenRouter——无需改代码即可切换模型
+const chat = new OpenRouterChatClient({
+  apiKey: process.env.OPENROUTER_API_KEY!,
+  model: "anthropic/claude-haiku-4-5",
+});
+
+// 自定义端点（Together、Groq、Azure、本地 vLLM……）
+const chat = new OpenAIChatClient({
+  apiKey: process.env.TOGETHER_API_KEY!,
+  baseUrl: "https://api.together.xyz/v1",
+  model: "meta-llama/Llama-3-8b-chat-hf",
+});
+```
+
+## 摄取文档
+
+```ts
+import { ingestFile, ingestDirectory, ingestText } from "@chatman-media/rag";
+
+// 单个文件
+await ingestFile("./docs/faq.md", { kb, embedder });
+
+// 目录——自动从子目录名称派生主题标签
+await ingestDirectory("./knowledge-base", { kb, embedder });
+// knowledge-base/visa/requirements.md    → topic: "visa"
+// knowledge-base/payment/salaries.md    → topic: "payment"
+// knowledge-base/intro.md               → topic: null（全局）
+
+// 原始文本（管理员粘贴、API 上传……）
+await ingestText(
+  { title: "Product FAQ", body: markdownString },
+  { kb, embedder, topic: "faq" }
+);
+```
+
+内容按 SHA-256 去重——重复摄取未变更文件不产生任何操作。
+
+## 销售人格
+
+适用于需要转化而不仅仅是回答的机器人：
+
+```ts
+import { answerWithRag } from "@chatman-media/rag";
+import type { Style } from "@chatman-media/rag";
+
+const style: Style = {
+  slug: "alina-nepq",
+  displayName: "Alina NEPQ",
+  persona: {
+    name: "Alina",
+    role: "human",          // 扮演真实人物，永不承认是 AI
+    company: "My Agency",
+    facts: { city: "Istanbul", age: "26" },
+  },
+  voice: {
+    tone: "温暖、好奇、简短——像真实的 WhatsApp 对话",
+    language: "ru",
+    forbid: ["当然！", "没问题！", "作为 AI"],
+  },
+  framework: "NEPQ",        // AIDA | PAS | SPIN | NEPQ | straight_line
+  hooks: [
+    { kind: "social_proof", text: "我们大多数女孩在 2 周内就达到了收入目标" },
+    { kind: "scarcity",     text: "下一班航班只剩 3–5 个名额" },
+  ],
+  stages: {
+    qualify: { goal: "了解动机和准备情况", groundingRequired: false },
+    pitch:   { goal: "介绍具体职位条件",    groundingRequired: true },
+  },
+  fewShot: [
+    { stage: "qualify", user: "那边给多少钱？", assistant: "要看城市——你在考虑哪里？" },
+  ],
+  guardrails: {
+    noMinors: true,
+    botDisclosureOnDirectQuestion: true,
+    forbiddenTopics: [],
+  },
+  model: { id: "qwen3:latest", temperature: 0.8, maxTokens: 256 },
+};
+
+const result = await answerWithRag({
+  question, kb, chat, embedder,
+  style,
+  stage: "qualify",         // opener | qualify | pitch | objection | close
+  hybridSearch: true,
+  skills: activeSkills,     // 从数据库加载的说服技巧
+});
+```
+
+## AnswerInput 参数
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `topK` | `number` | `5` | 检索的知识库分块数量 |
+| `maxDistance` | `number` | — | 丢弃余弦距离超过此值的向量结果 |
+| `hybridSearch` | `boolean` | `false` | 通过 RRF 融合向量 + BM25 |
+| `topicRouting` | `boolean` | `false` | 先按主题切片路由检索 |
+| `booksPriority` | `boolean` | `false` | 优先搜索"books"主题，全局兜底 |
+| `rewriteQueryBeforeRetrieval` | `boolean` | `false` | 通过 LLM 解析代词/省略 |
+| `reflect` | `boolean` | `false` | 幻觉防护（额外 1 次 LLM 调用） |
+| `vacanciesBlock` | `string` | — | 预渲染的职位信息，前置到上下文 |
+| `vacancyGuard` | `boolean` | `true` | 设置 `vacanciesBlock` 时验证职位准确性 |
+| `includeFewShot` | `boolean` | `true` | 包含风格中的 few-shot 示例 |
+| `numPredict` | `number` | — | 输出 token 硬上限 |
+| `userFacts` | `Record<string,string>` | — | 注入提示词的跨会话用户记忆 |
+| `conversationSummary` | `string` | — | 注入提示词的压缩历史对话 |
+| `skills` | `SkillForPrompt[]` | — | 绑定到当前风格的说服技巧 |
+
+## 遥测
+
+每次调用均返回结构化遥测数据——无需任何配置：
+
+```ts
+const { text, telemetry } = await answerWithRag({ ... });
+
+// telemetry 结构：
+{
+  path: "ok",              // ok | smalltalk | persona_fact | no_context | ungrounded
+  retrieval_ms: 38,
+  generation_ms: 1240,
+  top_distances: [0.18, 0.22, 0.31, 0.35, 0.42],
+  hybrid: true,
+  topic: "visa",           // 分类器无结论时为 null
+  original_query: "那边呢？",
+  rewritten_query: "迪拜的签证要求是什么？",
+  factCheck: {
+    grounded: true,
+    vacancyOk: true,
+  }
+}
+```
+
+将遥测数据存入消息表，用于后续分析：检索质量趋势、各模型幻觉率、A/B 实验结果。
+
+## 路线图
+
+### ✅ 已完成
+- [x] 混合检索 — pgvector + BM25 + 互惠排名融合（RRF）
+- [x] 幻觉防护（`reflect`、`vacancyGuard`）
+- [x] 检索前查询改写
+- [x] 销售人格 — NEPQ / AIDA / PAS / SPIN
+- [x] 主题路由 — 零延迟正则分类器
+- [x] 文档摄取 — `.md` / `.txt` / `.pdf` 含 SHA-256 去重
+- [x] 跨会话记忆 — 用户事实提取 + 对话摘要压缩
+- [x] 流式输出 — `answerWithRagStream()`、`ChatClient.stream()`
+- [x] `onTelemetry` 回调 — 每次调用零配置指标
+- [x] `InMemoryKbStore` — 无需数据库的测试与原型存储
+- [x] Retry + 指数退避 — `withRetryChatClient()`、`withRetryEmbeddingClient()`
+- [x] 语义缓存 — 带余弦相似度阈值的 `SemanticCache`
+- [x] 按章节分块 — `chunkBySections()` 按 Markdown 标题分割
+
+### ✅ 也已完成
+- [x] **Reranker** — RRF 后可选的交叉编码器阶段（`CohereReranker`、`JinaReranker`）
+- [x] **评估工具** — `evalRetrieval()` → recall@k、MRR、NDCG
+- [x] **`IConversationStore`** — 会话历史与摘要持久化的统一接口
+- [x] **A/B 测试路由器** — 按 `userId` 随机化风格，通过 `onTelemetry` 记录转化
+- [x] **SSE 服务器** — 基于 Bun.serve() 的 `createRagServer()` 含令牌流式输出
+- [x] **多轮工具调用** — 智能体式工具循环，支持并行执行工具，由 `maxToolCycles` 限制（`answerWithRag` 与 `answerWithRagStream` 均支持）
+
+### 🚧 计划中
+- [ ] **`PgVectorKbStore`** — 开箱即用的 pgvector `IKbStore` 适配器
+- [ ] **更多存储适配器** — Qdrant 与 Pinecone 后端
+- [ ] **OpenTelemetry 导出器** — 将 `onTelemetry` 事件桥接到 OTel 跨度与指标
+- [ ] **令牌用量与成本跟踪** — 在遥测中记录每次调用的令牌数与成本
+- [ ] **上下文检索** — 在嵌入前为分块添加上下文以提升召回率
+- [ ] **嵌入缓存** — 按文本哈希缓存嵌入，减少冗余 API 调用
+
+## 贡献
+
+欢迎提交 PR 和 Issue。请参阅 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+## 许可证
+
+[MIT](LICENSE) — Alexander Kireev / [chatman-media](https://github.com/chatman-media)
+
+---
+
+<div align="center">
+
+[🇬🇧 English](README.md) &nbsp;·&nbsp; [🇷🇺 Русский](README.ru.md) &nbsp;·&nbsp; 🇨🇳 **中文**
+
+</div>
